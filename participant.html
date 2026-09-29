@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>HackArena | Participant Dashboard</title>
+
+  <link rel="stylesheet" href="./participant.css">
+  <script src="./participant.js" defer></script>
+</head>
+
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <a class="brand" href="./index.html">
+        <span class="brand-mark">H</span>
+        <span>HackArena</span>
+      </a>
+
+      <p class="sidebar-label">PARTICIPANT WORKSPACE</p>
+
+      <nav class="sidebar-nav" aria-label="Dashboard navigation">
+        <button type="button" data-page="overview" aria-pressed="true">
+          Overview
+        </button>
+        <button type="button" data-page="team" aria-pressed="false">
+          My Team
+        </button>
+        <button type="button" data-page="problems" aria-pressed="false">
+          Problem Statements
+        </button>
+        <button type="button" data-page="matching" aria-pressed="false">
+          Smart Matching
+        </button>
+        <button type="button" data-page="submission" aria-pressed="false">
+          Submission
+        </button>
+        <button type="button" data-page="updates" aria-pressed="false">
+          Announcements & Notifications
+        </button>
+        <button type="button" data-page="leaderboard" aria-pressed="false">
+          Leaderboard
+        </button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <strong>Built for the builders.</strong>
+        <span>By Team Nexora</span>
+        <a href="./index.html">Back to login page</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <p class="breadcrumb">Workspace</p>
+          <h1 id="page-title">Overview</h1>
+        </div>
+
+        <span class="role-badge">PARTICIPANT</span>
+      </header>
+
+      <p class="preview-banner">
+        Frontend preview — no account is logged in and no live event
+        data is connected.
+      </p>
+
+      <!-- OVERVIEW -->
+      <section id="overview" class="page">
+        <div class="hero">
+          <div>
+            <span class="eyebrow">YOUR NEXT BIG IDEA STARTS HERE</span>
+            <h2>Welcome to<br>the arena.</h2>
+            <p>
+              Your team, your challenge and your submission —
+              all in one workspace.
+            </p>
+
+            <button class="button" type="button" data-open="problems">
+              Explore problems ↗
+            </button>
+          </div>
+
+          <div class="countdown">
+            <span>HACKATHON COUNTDOWN</span>
+            <strong aria-label="Countdown not started">— : — : —</strong>
+            <p>Waiting for organizer to start</p>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <article class="stat">
+            <span>Team capacity</span>
+            <strong>100 teams</strong>
+            <small>Default; organizer-configurable</small>
+          </article>
+
+          <article class="stat">
+            <span>Selected problem</span>
+            <strong>Not loaded</strong>
+            <small>Your selected problem will appear here</small>
+          </article>
+
+          <article class="stat">
+            <span>Submission status</span>
+            <strong>Not loaded</strong>
+            <small>Connect your account to see its status</small>
+          </article>
+        </div>
+
+        <div class="two-column">
+          <article class="panel">
+            <h3>Your team</h3>
+            <p>
+              Team ID, leader and member information will be loaded
+              after authentication.
+            </p>
+            <button class="text-button" type="button" data-open="team">
+              View team →
+            </button>
+          </article>
+
+          <article class="panel">
+            <h3>Prepare your submission</h3>
+            <p>
+              Add project information, repository and demo links,
+              and your presentation.
+            </p>
+            <button
+              class="text-button"
+              type="button"
+              data-open="submission"
+            >
+              Open submission →
+            </button>
+          </article>
+        </div>
+
+        <article class="panel journey-panel">
+          <h3>Your hackathon journey</h3>
+          <p>Current stage will appear after event data is connected.</p>
+
+          <ol class="journey">
+            <li>Registration</li>
+            <li>Team</li>
+            <li>Problem</li>
+            <li>Development</li>
+            <li>Submission</li>
+            <li>Judging</li>
+            <li>Results</li>
+          </ol>
+        </article>
+      </section>
+
+      <!-- TEAM -->
+      <section id="team" class="page" hidden>
+        <article class="panel">
+          <span class="eyebrow">YOUR PEOPLE</span>
+          <h2>Team information</h2>
+
+          <dl class="details-list">
+            <div>
+              <dt>Team name</dt>
+              <dd>Not loaded</dd>
+            </div>
+            <div>
+              <dt>Team ID</dt>
+              <dd>Not loaded</dd>
+            </div>
+            <div>
+              <dt>Team leader</dt>
+              <dd>Not loaded</dd>
+            </div>
+            <div>
+              <dt>Leader email</dt>
+              <dd>Not loaded</dd>
+            </div>
+            <div>
+              <dt>Maximum members</dt>
+              <dd>4 by default, including the leader</dd>
+            </div>
+          </dl>
+
+          <div class="empty-state">
+            <h3>No team data loaded</h3>
+            <p>
+              Your registered team and its members will appear here.
+              Team-management changes will be connected to the backend.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <!-- PROBLEMS -->
+      <section id="problems" class="page" hidden>
+        <article class="panel">
+          <span class="eyebrow">FIND YOUR CHALLENGE</span>
+          <h2>Problem statements</h2>
+
+          <p>
+            Explore organizer-published problems. Problems that have
+            reached capacity will not be available for selection.
+          </p>
+
+          <div class="empty-state">
+            <h3>No problem data loaded</h3>
+            <p>
+              Organizer-provided codes, titles, statements and
+              available capacity will appear here.
+            </p>
+          </div>
+
+          <button class="button" type="button" data-open="matching">
+            Explore Smart Matching
+          </button>
+        </article>
+      </section>
+
+      <!-- MATCHING -->
+      <section id="matching" class="page" hidden>
+        <article class="panel">
+          <span class="eyebrow">DISCOVER A SUITABLE CHALLENGE</span>
+          <h2>Smart Problem Matching</h2>
+
+          <p>
+            Share your team's skills and interests to find suitable
+            available problems.
+          </p>
+
+          <form id="matching-form">
+            <div class="field">
+              <label for="skills">Team skills</label>
+              <input
+                id="skills"
+                name="skills"
+                type="text"
+                placeholder="Enter skills separated by commas"
+                required
+              >
+            </div>
+
+            <div class="field">
+              <label for="interests">Team interests</label>
+              <input
+                id="interests"
+                name="interests"
+                type="text"
+                placeholder="Enter interests separated by commas"
+                required
+              >
+            </div>
+
+            <div class="action-row">
+              <button class="button" type="submit">
+                Find matches
+              </button>
+
+              <button
+                class="button secondary"
+                type="button"
+                data-open="problems"
+              >
+                Skip Recommendation
+              </button>
+            </div>
+
+            <p id="matching-status" class="status" role="status"></p>
+          </form>
+
+          <div class="empty-state">
+            <h3>Why This Match?</h3>
+            <p>
+              When recommendations are available, each one will
+              explain which skills or interests match the problem.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <!-- SUBMISSION -->
+      <section id="submission" class="page" hidden>
+        <article class="panel">
+          <span class="eyebrow">READY FOR YOUR SHOWCASE?</span>
+          <h2>Project submission</h2>
+
+          <p>
+            Your selected problem will be linked from your team record.
+            No separate solution-description field is required.
+          </p>
+
+          <form id="submission-form">
+            <div class="field">
+              <label for="project-name">Project name</label>
+              <input
+                id="project-name"
+                name="projectName"
+                type="text"
+                placeholder="Enter your project name"
+                required
+              >
+            </div>
+
+            <div class="form-grid">
+              <div class="field">
+                <label for="github-link">GitHub repository link</label>
+                <input
+                  id="github-link"
+                  name="githubLink"
+                  type="url"
+                  placeholder="https://github.com/..."
+                  required
+                >
+              </div>
+
+              <div class="field">
+                <label for="demo-link">Demo link</label>
+                <input
+                  id="demo-link"
+                  name="demoLink"
+                  type="url"
+                  placeholder="https://..."
+                  required
+                >
+              </div>
+            </div>
+
+            <div class="field">
+              <label for="presentation">Project presentation / PPT</label>
+              <input
+                id="presentation"
+                name="presentation"
+                type="file"
+                required
+              >
+              <p id="file-status" class="help">
+                No file selected. Allowed formats and maximum size
+                are not finalized.
+              </p>
+            </div>
+
+            <p class="help">
+              Selected files stay on your device in this preview.
+              Nothing is uploaded.
+            </p>
+
+            <div class="action-row">
+              <button
+                id="check-readiness"
+                class="button secondary"
+                type="button"
+              >
+                Check readiness
+              </button>
+
+              <button class="button" type="submit">
+                Final submission
+              </button>
+            </div>
+
+            <div id="readiness-result" class="status" role="status"></div>
+          </form>
+        </article>
+      </section>
+
+      <!-- UPDATES -->
+      <section id="updates" class="page" hidden>
+        <div class="two-column">
+          <article class="panel">
+            <span class="eyebrow">FROM THE ORGANIZER</span>
+            <h2>Announcements</h2>
+
+            <div class="empty-state">
+              <h3>No announcements loaded</h3>
+              <p>
+                Event notices can appear here before and during
+                the hackathon.
+              </p>
+            </div>
+          </article>
+
+          <article class="panel">
+            <span class="eyebrow">STAY INFORMED</span>
+            <h2>Notifications</h2>
+
+            <div class="empty-state">
+              <h3>No notifications loaded</h3>
+              <p>
+                Relevant deadline, problem, submission, evaluation
+                and ranking updates will appear here.
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- LEADERBOARD -->
+      <section id="leaderboard" class="page" hidden>
+        <article class="panel">
+          <span class="eyebrow">THE RESULTS</span>
+          <h2>Leaderboard</h2>
+
+          <p>
+            Rankings will update according to submitted judge scores.
+          </p>
+
+          <div class="empty-state">
+            <h3>No scores loaded</h3>
+            <p>
+              Team rankings and scores will appear when evaluation
+              data is available.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <footer class="footer">
+        HackArena · Team Nexora
+      </footer>
+    </main>
+  </div>
+</body>
+</html>

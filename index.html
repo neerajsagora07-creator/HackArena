@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>HackArena | Login</title>
+
+  <!-- All three files must be in the same folder. -->
+  <link rel="stylesheet" href="./style.css">
+  <script src="./script.js" defer></script>
+</head>
+
+<body>
+  <header class="header">
+    <a class="brand" href="./index.html">
+      <span class="brand-icon">H</span>
+      <span>HackArena</span>
+    </a>
+
+    <span class="team-credit">By Team Nexora</span>
+  </header>
+
+  <main class="main">
+    <section class="intro">
+      <span class="eyebrow">BUILD · COLLABORATE · INNOVATE</span>
+
+      <h1>Welcome to <span>HackArena</span></h1>
+
+      <p>One arena. Three roles. Sign in to continue.</p>
+    </section>
+
+    <section class="login-grid" aria-label="Login options">
+
+      <!-- PARTICIPANT LOGIN -->
+      <article class="login-card">
+        <div class="card-heading">
+          <span class="role-icon" aria-hidden="true">T</span>
+
+          <div>
+            <h2>Team Login</h2>
+            <p>For registered participating teams</p>
+          </div>
+        </div>
+
+        <form class="login-form" data-role="Participant">
+          <div class="field">
+            <label for="team-id">Team ID</label>
+
+            <input
+              id="team-id"
+              name="teamId"
+              type="text"
+              placeholder="Enter your Team ID"
+              autocomplete="username"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="team-password">Password</label>
+
+            <div class="password-wrapper">
+              <input
+                id="team-password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+              >
+
+              <button
+                class="show-password"
+                type="button"
+                data-target="team-password"
+                aria-label="Show team password"
+                aria-pressed="false"
+              >
+                Show
+              </button>
+            </div>
+          </div>
+
+          <button class="login-button" type="submit">
+            Login as Participant
+          </button>
+        </form>
+
+        <div class="recovery-links">
+          <button type="button" data-recovery="team-id">
+            Forgot Team ID?
+          </button>
+
+          <button type="button" data-recovery="team-password">
+            Forgot Password?
+          </button>
+        </div>
+
+        <div class="card-bottom">
+          <span>New team?</span>
+
+          <button type="button" id="open-register">
+            Register your team
+          </button>
+        </div>
+      </article>
+
+      <!-- JUDGE LOGIN -->
+      <article class="login-card">
+        <div class="card-heading">
+          <span class="role-icon" aria-hidden="true">J</span>
+
+          <div>
+            <h2>Judge Login</h2>
+            <p>For judges invited by the organizer</p>
+          </div>
+        </div>
+
+        <form class="login-form" data-role="Judge">
+          <div class="field">
+            <label for="judge-email">Email</label>
+
+            <input
+              id="judge-email"
+              name="email"
+              type="email"
+              placeholder="Enter your email"
+              autocomplete="username"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="judge-password">Password</label>
+
+            <div class="password-wrapper">
+              <input
+                id="judge-password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+              >
+
+              <button
+                class="show-password"
+                type="button"
+                data-target="judge-password"
+                aria-label="Show judge password"
+                aria-pressed="false"
+              >
+                Show
+              </button>
+            </div>
+          </div>
+
+          <button class="login-button" type="submit">
+            Login as Judge
+          </button>
+        </form>
+
+        <div class="recovery-links single-link">
+          <button type="button" data-recovery="judge-password">
+            Forgot Password?
+          </button>
+        </div>
+
+        <div class="card-bottom">
+          Invited? Set up your account from your invitation email.
+        </div>
+      </article>
+
+      <!-- ORGANIZER LOGIN -->
+      <article class="login-card">
+        <div class="card-heading">
+          <span class="role-icon" aria-hidden="true">O</span>
+
+          <div>
+            <h2>Organizer Login</h2>
+            <p>Manage your hackathon</p>
+          </div>
+        </div>
+
+        <form class="login-form" data-role="Organizer">
+          <div class="field">
+            <label for="organizer-email">Email</label>
+
+            <input
+              id="organizer-email"
+              name="email"
+              type="email"
+              placeholder="Enter your email"
+              autocomplete="username"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="organizer-password">Password</label>
+
+            <div class="password-wrapper">
+              <input
+                id="organizer-password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                required
+              >
+
+              <button
+                class="show-password"
+                type="button"
+                data-target="organizer-password"
+                aria-label="Show organizer password"
+                aria-pressed="false"
+              >
+                Show
+              </button>
+            </div>
+          </div>
+
+          <button class="login-button" type="submit">
+            Login as Organizer
+          </button>
+        </form>
+
+        <div class="recovery-links single-link">
+          <button type="button" data-recovery="organizer-password">
+            Forgot Password?
+          </button>
+        </div>
+
+        <div class="card-bottom">
+          Authorized organizer access only.
+        </div>
+      </article>
+    </section>
+
+    <p class="preview-label">
+      Frontend preview · Authentication is not connected yet
+    </p>
+  </main>
+
+  <footer class="footer">
+    <strong>HackArena</strong>
+    <span>Intelligent Hackathon Event Management & Evaluation System</span>
+  </footer>
+
+  <!-- TEAM REGISTRATION -->
+  <dialog id="register-dialog" class="modal" aria-labelledby="register-title">
+    <div class="modal-heading">
+      <div>
+        <span class="eyebrow">START TOGETHER</span>
+        <h2 id="register-title">Register your team</h2>
+      </div>
+
+      <button
+        type="button"
+        class="close-button"
+        data-close="register-dialog"
+        aria-label="Close registration"
+      >
+        ×
+      </button>
+    </div>
+
+    <p class="modal-description">
+      Register the whole team together. The team leader is included
+      in the member limit.
+    </p>
+
+    <form id="register-form">
+      <div class="field">
+        <label for="register-team-name">Team name</label>
+        <input
+          id="register-team-name"
+          name="teamName"
+          type="text"
+          placeholder="Enter team name"
+          required
+        >
+      </div>
+
+      <div class="form-row">
+        <div class="field">
+          <label for="leader-name">Team leader name</label>
+          <input
+            id="leader-name"
+            name="leaderName"
+            type="text"
+            autocomplete="name"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="leader-email">Team leader email</label>
+          <input
+            id="leader-email"
+            name="leaderEmail"
+            type="email"
+            autocomplete="email"
+            required
+          >
+        </div>
+      </div>
+
+      <div class="member-heading">
+        <div>
+          <h3>Other team members</h3>
+          <p id="member-count"></p>
+        </div>
+
+        <button id="add-member" class="secondary-button" type="button">
+          + Add member
+        </button>
+      </div>
+
+      <div id="member-list"></div>
+
+      <div class="form-row">
+        <div class="field">
+          <label for="register-password">Create password</label>
+          <input
+            id="register-password"
+            name="password"
+            type="password"
+            autocomplete="new-password"
+            required
+          >
+        </div>
+
+        <div class="field">
+          <label for="confirm-password">Confirm password</label>
+          <input
+            id="confirm-password"
+            name="confirmPassword"
+            type="password"
+            autocomplete="new-password"
+            required
+          >
+        </div>
+      </div>
+
+      <p class="form-note">
+        After successful email verification and registration,
+        the system will generate your unique Team ID.
+      </p>
+
+      <button class="login-button" type="submit">
+        Continue to email verification
+      </button>
+
+      <p id="register-status" class="status-message" role="status"></p>
+    </form>
+  </dialog>
+
+  <!-- RECOVERY -->
+  <dialog id="recovery-dialog" class="modal small-modal"
+          aria-labelledby="recovery-title">
+    <div class="modal-heading">
+      <h2 id="recovery-title">Account recovery</h2>
+
+      <button
+        type="button"
+        class="close-button"
+        data-close="recovery-dialog"
+        aria-label="Close recovery"
+      >
+        ×
+      </button>
+    </div>
+
+    <p id="recovery-description" class="modal-description"></p>
+
+    <form id="recovery-form">
+      <div class="field">
+        <label for="recovery-email">Registered email</label>
+        <input
+          id="recovery-email"
+          type="email"
+          autocomplete="email"
+          required
+        >
+      </div>
+
+      <button class="login-button" type="submit">Continue</button>
+
+      <p id="recovery-status" class="status-message" role="status"></p>
+    </form>
+  </dialog>
+
+  <!-- LOGIN STATUS -->
+  <dialog id="notice-dialog" class="modal small-modal"
+          aria-labelledby="notice-title">
+    <div class="modal-heading">
+      <h2 id="notice-title">Frontend preview</h2>
+
+      <button
+        type="button"
+        class="close-button"
+        data-close="notice-dialog"
+        aria-label="Close message"
+      >
+        ×
+      </button>
+    </div>
+
+    <p id="notice-message" class="modal-description"></p>
+  </dialog>
+</body>
+</html>
