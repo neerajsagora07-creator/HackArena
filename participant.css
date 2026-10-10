@@ -1,3 +1,7 @@
+
+/* HACKARENA PARTICIPANT DASHBOARD */
+/* WARM GREY + CHARCOAL + ORANGE */
+
 :root {
   --background: #bbbcb0;
   --panel: #cdcec2;
@@ -141,6 +145,35 @@ h3 {
   margin-top: 12px;
 }
 
+.sidebar-message {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: #ffc3a0;
+}
+
+.sidebar-message:empty {
+  display: none;
+}
+
+/* LOGOUT */
+
+.logout-button {
+  min-height: 43px;
+  margin-top: 15px;
+  padding: 10px 14px;
+  border: 1px solid #ffb188;
+  border-radius: 9px;
+  background: transparent;
+  color: #ffb188;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.logout-button:hover {
+  background: #494b41;
+}
+
 /* MAIN */
 
 .main {
@@ -238,7 +271,8 @@ h3 {
   color: #2c2014;
   font-weight: 700;
   font-size: 13px;
-  transition: transform 150ms ease, background 150ms ease;
+  transition: transform 150ms ease,
+              background 150ms ease;
 }
 
 .button:hover {
@@ -280,7 +314,7 @@ h3 {
   font-size: 12px;
 }
 
-/* CARDS */
+/* STATISTICS */
 
 .stats-grid {
   display: grid;
@@ -309,6 +343,7 @@ h3 {
   display: block;
   font-size: 21px;
   margin: 7px 0;
+  overflow-wrap: anywhere;
 }
 
 .stat small {
@@ -355,6 +390,8 @@ h3 {
   text-decoration: underline;
 }
 
+/* PROGRESS TRACKER */
+
 .journey-panel {
   margin-top: 20px;
 }
@@ -389,6 +426,28 @@ h3 {
   font-size: 10px;
 }
 
+.journey li.completed::before {
+  background: #5c8150;
+  color: #ffffff;
+}
+
+.journey li.current::before {
+  background: var(--orange);
+  color: #292d25;
+  font-weight: 700;
+}
+
+.journey li.current {
+  font-weight: 700;
+  color: #8c3b16;
+}
+
+.progress-note {
+  margin: 18px 0 0;
+  font-size: 12px !important;
+  font-weight: 700;
+}
+
 /* EMPTY STATES */
 
 .empty-state {
@@ -405,6 +464,8 @@ h3 {
 .empty-state p {
   margin-bottom: 0;
 }
+
+/* TEAM DETAILS */
 
 .details-list {
   margin: 24px 0;
@@ -425,6 +486,10 @@ h3 {
 .details-list dd {
   margin: 0;
   font-weight: 700;
+}
+
+#team-members-list {
+  padding-left: 22px;
 }
 
 /* FORMS */
@@ -506,6 +571,144 @@ input[type="file"]::file-selector-button {
   margin: 0;
 }
 
+/* PROBLEM STATEMENTS */
+
+.problem-grid {
+  display: grid;
+  gap: 16px;
+  margin: 20px 0;
+}
+
+.problem-card {
+  padding: 20px;
+  border-radius: 13px;
+  background: #b5bea9;
+}
+
+.problem-card h3 {
+  margin-bottom: 10px;
+}
+
+.problem-card p {
+  margin-bottom: 10px;
+}
+
+.problem-card .button {
+  margin-top: 10px;
+}
+
+/* SUBMISSION STATUS */
+
+.submission-info {
+  background: #b4bda7;
+  border-radius: 13px;
+  padding: 20px;
+  margin: 24px 0;
+}
+
+.submission-info > strong {
+  display: block;
+  font-size: 14px;
+  margin-bottom: 12px;
+}
+
+.submission-info > span {
+  display: inline-block;
+  padding: 7px 14px;
+  background: #a4b196;
+  border-radius: 25px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.submission-info p {
+  margin: 14px 0 0;
+  font-size: 12px;
+}
+
+/* ACHIEVEMENTS */
+
+.achievements-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 26px;
+}
+
+.achievement-card {
+  text-align: center;
+  padding: 26px 18px;
+  background: #b4bda7;
+  border-radius: 15px;
+  border: 1px solid #a5b29b;
+}
+
+.achievement-icon {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 16px;
+  background: #9fae90;
+  border-radius: 50%;
+  color: #a24d21;
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.achievement-card h3 {
+  font-size: 17px;
+  margin-bottom: 10px;
+}
+
+.achievement-card p {
+  font-size: 12px;
+  min-height: 38px;
+}
+
+.badge-status {
+  display: inline-block;
+  padding: 7px 13px;
+  border-radius: 20px;
+  background: #a2ae94;
+  color: #293820;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.badge-status.unlocked {
+  background: #60834f;
+  color: #ffffff;
+}
+
+/* TABLES */
+
+.table-wrapper {
+  overflow-x: auto;
+  margin-top: 24px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+th {
+  padding: 14px 12px;
+  background: #afb79f;
+  color: #354329;
+  white-space: nowrap;
+}
+
+td {
+  padding: 14px 12px;
+  vertical-align: top;
+}
+
+/* FOOTER */
+
 .footer {
   text-align: center;
   color: #58684a;
@@ -513,7 +716,7 @@ input[type="file"]::file-selector-button {
   margin-top: 30px;
 }
 
-/* RESPONSIVE */
+/* RESPONSIVE TABLET */
 
 @media (max-width: 1050px) {
   .app {
@@ -533,6 +736,8 @@ input[type="file"]::file-selector-button {
   }
 }
 
+/* RESPONSIVE MOBILE */
+
 @media (max-width: 760px) {
   .app {
     grid-template-columns: 1fr;
@@ -546,9 +751,13 @@ input[type="file"]::file-selector-button {
     margin-bottom: 20px;
   }
 
-  .sidebar-label,
-  .sidebar-bottom {
+  .sidebar-label {
     display: none;
+  }
+
+  .sidebar-bottom {
+    padding: 14px 0 0;
+    margin-top: 12px;
   }
 
   .sidebar-nav {
@@ -570,7 +779,13 @@ input[type="file"]::file-selector-button {
   .two-column {
     grid-template-columns: 1fr;
   }
+
+  .achievements-grid {
+    grid-template-columns: 1fr;
+  }
 }
+
+/* SMALL MOBILE */
 
 @media (max-width: 520px) {
   .stats-grid,
