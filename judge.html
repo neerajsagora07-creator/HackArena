@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,11 +9,15 @@
 
   <link rel="stylesheet" href="./judge.css">
   <script src="./judge.js" defer></script>
+  <script src="./event-display.js" defer></script>
 </head>
 
 <body>
   <div class="app">
+
+    <!-- SIDEBAR -->
     <aside class="sidebar">
+
       <a class="brand" href="./index.html">
         <span class="brand-mark">H</span>
         <span>HackArena</span>
@@ -21,252 +26,386 @@
       <p class="sidebar-label">JUDGE WORKSPACE</p>
 
       <nav class="navigation" aria-label="Judge navigation">
-        <button type="button" data-page="overview" aria-pressed="true">
+
+        <button type="button"
+                data-page="overview"
+                aria-pressed="true">
           Overview
         </button>
-        <button type="button" data-page="projects" aria-pressed="false">
+
+        <button type="button"
+                data-page="projects"
+                aria-pressed="false">
           Submitted Projects
         </button>
-        <button type="button" data-page="evaluation" aria-pressed="false">
+
+        <button type="button"
+                data-page="evaluation"
+                aria-pressed="false">
           Evaluation
         </button>
-        <button type="button" data-page="leaderboard" aria-pressed="false">
+
+        <button type="button"
+                data-page="leaderboard"
+                aria-pressed="false">
           Leaderboard
         </button>
+
       </nav>
 
       <div class="sidebar-bottom">
         <strong>Recognize great ideas.</strong>
         <span>By Team Nexora</span>
-        <a href="./index.html">Back to login page</a>
+
+        <button type="button"
+                id="logout-button"
+                class="logout-button">
+          Logout
+        </button>
+
+        <p id="logout-status"
+           class="sidebar-message"
+           role="status"></p>
       </div>
     </aside>
 
+    <!-- MAIN -->
     <main class="main">
+
       <header class="topbar">
         <div>
           <p class="breadcrumb">Judge workspace</p>
           <h1 id="page-title">Overview</h1>
         </div>
+
         <span class="role-badge">JUDGE</span>
       </header>
 
       <p class="preview-banner">
-        Frontend preview — no judge is authenticated and no live
-        submissions or scores are connected.
+        Frontend preview — no judge is authenticated.
+        Live submissions, evaluations and scores are
+        not connected yet.
       </p>
 
       <!-- OVERVIEW -->
       <section id="overview" class="page">
+
         <div class="hero">
           <div>
-            <span class="eyebrow">IDEAS DESERVE A FAIR REVIEW</span>
+            <span class="eyebrow">
+              IDEAS DESERVE A FAIR REVIEW
+            </span>
+
             <h2>Review the work.<br>Recognize the impact.</h2>
+
             <p>
-              Explore submitted projects, review their selected
-              problems and evaluate using the event criteria.
+              Explore submitted projects, review
+              their selected problems and evaluate
+              using the event criteria.
             </p>
-            <button type="button" class="button" data-open="projects">
+
+            <button type="button"
+                    class="button"
+                    data-open="projects">
               View submitted projects →
             </button>
           </div>
 
           <div class="hero-note">
             <span>DEFAULT EVALUATION TOTAL</span>
-            <strong>100</strong>
-            <p>Criteria and mark distribution are organizer-configurable.</p>
+            <strong id="overview-total">100</strong>
+            <p>
+              Current judging rubric follows the
+              HackArena evaluation criteria.
+            </p>
           </div>
         </div>
 
+        <!-- OVERVIEW STATS -->
         <div class="stats-grid">
+
           <article class="stat">
             <span>Available submissions</span>
-            <strong>—</strong>
-            <small>Not connected</small>
+            <strong id="available-count">Not loaded</strong>
+            <small>Projects assigned for evaluation</small>
           </article>
 
           <article class="stat">
             <span>Your submitted evaluations</span>
-            <strong>—</strong>
-            <small>Not connected</small>
+            <strong id="evaluated-count">Not loaded</strong>
+            <small>Saved evaluation records</small>
           </article>
 
           <article class="stat">
             <span>Evaluation status</span>
-            <strong>Waiting for data</strong>
-            <small>Select a submitted project to evaluate</small>
+            <strong id="evaluation-overview-status">
+              Waiting for data
+            </strong>
+            <small>Select a project to evaluate</small>
           </article>
+
         </div>
 
         <div class="two-column">
+
           <article class="panel">
-            <h3>Review before scoring</h3>
+            <h3>Review Before Scoring</h3>
+
             <p>
-              Check the selected problem statement, project information,
+              Check the selected problem statement,
+              team details, project information,
               GitHub repository, demo and presentation.
             </p>
-            <button type="button" class="text-button" data-open="projects">
+
+            <button type="button"
+                    class="text-button"
+                    data-open="projects">
               Open project list →
             </button>
           </article>
 
           <article class="panel">
-            <h3>Structured evaluation</h3>
+            <h3>Structured Evaluation</h3>
+
             <p>
-              Enter marks for each criterion, review the automatic
-              total and provide feedback.
+              Enter marks for each criterion,
+              review the automatic total and
+              provide constructive feedback.
             </p>
-            <button type="button" class="text-button" data-open="evaluation">
+
+            <button type="button"
+                    class="text-button"
+                    data-open="evaluation">
               View evaluation form →
             </button>
           </article>
+
         </div>
+
       </section>
 
-      <!-- PROJECTS -->
+      <!-- SUBMITTED PROJECTS -->
       <section id="projects" class="page" hidden>
+
         <article class="panel">
+
           <span class="eyebrow">SUBMITTED WORK</span>
-          <h2>Submitted projects</h2>
+
+          <h2>Submitted Projects</h2>
+
           <p>
-            Projects available to your judge account will appear here.
+            Projects available to your authorized judge
+            account will appear here.
           </p>
 
           <div class="table-wrapper">
             <table>
-              <caption class="sr-only">Projects available for evaluation</caption>
+              <caption class="sr-only">
+                Projects available for evaluation
+              </caption>
+
               <thead>
                 <tr>
                   <th scope="col">Team</th>
-                  <th scope="col">Problem code</th>
-                  <th scope="col">Problem title</th>
+                  <th scope="col">Problem Code</th>
+                  <th scope="col">Problem Title</th>
                   <th scope="col">Project</th>
-                  <th scope="col">Details</th>
+                  <th scope="col">Evaluation Status</th>
+                  <th scope="col">Action</th>
                 </tr>
               </thead>
+
               <tbody id="project-list"></tbody>
             </table>
           </div>
 
           <div class="empty-state" id="projects-empty">
-            <h3>No submission data loaded</h3>
+            <h3>No Submission Data Loaded</h3>
+
             <p>
-              No sample teams or projects have been added.
-              Participant submissions will come from the backend.
+              No sample teams or projects have been
+              added. Real participant submissions
+              will come from the backend.
             </p>
           </div>
+
         </article>
 
+        <!-- SELECTED PROJECT DETAILS -->
         <article class="panel section-gap">
-          <h3>Selected project details</h3>
+
+          <span class="eyebrow">PROJECT REVIEW</span>
+          <h2>Selected Project Details</h2>
 
           <dl class="details">
+
             <div>
               <dt>Team name and members</dt>
               <dd id="detail-team">No project selected</dd>
             </div>
+
             <div>
               <dt>Problem code</dt>
               <dd id="detail-code">—</dd>
             </div>
+
             <div>
               <dt>Problem title</dt>
               <dd id="detail-problem">—</dd>
             </div>
+
             <div>
               <dt>Project name</dt>
               <dd id="detail-project">—</dd>
             </div>
+
+            <div>
+              <dt>Submission status</dt>
+              <dd id="detail-submission-status">Not loaded</dd>
+            </div>
+
           </dl>
 
           <div class="problem-statement">
-            <h4>Full problem statement</h4>
+            <h4>Full Problem Statement</h4>
+
             <p id="detail-statement">
-              Select a submitted project to view its problem statement.
+              Select a submitted project to view
+              its full problem statement.
             </p>
           </div>
 
           <div class="resource-grid">
+
             <div class="resource">
-              <strong>GitHub repository</strong>
-              <span>Not loaded</span>
+              <strong>GitHub Repository</strong>
+              <div id="github-resource">
+                <span>Not loaded</span>
+              </div>
             </div>
+
             <div class="resource">
-              <strong>Project demo</strong>
-              <span>Not loaded</span>
+              <strong>Project Demo</strong>
+              <div id="demo-resource">
+                <span>Not loaded</span>
+              </div>
             </div>
+
             <div class="resource">
               <strong>Presentation / PPT</strong>
-              <span>Not loaded</span>
+              <div id="ppt-resource">
+                <span>Not loaded</span>
+              </div>
             </div>
+
           </div>
+
+          <div class="action-row">
+            <button type="button"
+                    id="evaluate-selected"
+                    class="button"
+                    disabled>
+              Evaluate Selected Project →
+            </button>
+          </div>
+
         </article>
+
       </section>
 
       <!-- EVALUATION -->
       <section id="evaluation" class="page" hidden>
-        <article class="panel">
-          <span class="eyebrow">CONSISTENT CRITERIA. CLEAR FEEDBACK.</span>
-          <h2>Evaluate a project</h2>
 
-          <div class="selection-notice">
-            No project selected. Open Submitted Projects and select
-            an available submission after the backend is connected.
+        <article class="panel">
+
+          <span class="eyebrow">
+            CONSISTENT CRITERIA. CLEAR FEEDBACK.
+          </span>
+
+          <h2>Evaluate a Project</h2>
+
+          <div class="selection-notice"
+               id="selection-notice">
+            No project selected. Open Submitted Projects
+            and select an available submission after
+            backend integration.
           </div>
 
           <p class="help">
-            The default rubric is shown below. Actual event criteria
-            will be loaded from Organizer settings.
+            The current default rubric is shown below.
+            Real event evaluation data will come
+            from the backend.
           </p>
 
           <form id="evaluation-form">
+
             <fieldset id="evaluation-fields" disabled>
-              <legend class="sr-only">Project evaluation</legend>
+
+              <legend class="sr-only">
+                Project Evaluation
+              </legend>
 
               <div id="criteria-list"></div>
 
               <div class="score-summary">
                 <div>
-                  <span>Automatic total</span>
+                  <span>Automatic Total</span>
                   <p>Calculated from criterion marks</p>
                 </div>
-                <output id="total-score" aria-live="polite">0 / 100</output>
+
+                <output id="total-score"
+                        aria-live="polite">
+                  0 / 100
+                </output>
               </div>
 
               <div class="field">
-                <label for="feedback">Judge feedback</label>
-                <textarea
-                  id="feedback"
-                  name="feedback"
-                  rows="5"
-                  placeholder="Write feedback for the team"
-                ></textarea>
+                <label for="feedback">Judge Feedback</label>
+
+                <textarea id="feedback"
+                          name="feedback"
+                          rows="5"
+                          placeholder="Write feedback for the team"></textarea>
               </div>
 
               <button type="submit" class="button">
-                Submit evaluation
+                Submit Evaluation
               </button>
+
             </fieldset>
 
-            <p id="evaluation-status" class="status" role="status"></p>
+            <p id="evaluation-status"
+               class="status"
+               role="status"></p>
+
           </form>
+
         </article>
+
       </section>
 
       <!-- LEADERBOARD -->
       <section id="leaderboard" class="page" hidden>
+
         <article class="panel">
+
           <span class="eyebrow">EVENT RESULTS</span>
+
           <h2>Leaderboard</h2>
 
           <p>
-            Rankings update from submitted judge evaluations.
-            Judges do not manually set ranks.
+            Rankings update from submitted judge
+            evaluations. Judges do not manually
+            set ranks.
           </p>
 
           <div class="table-wrapper">
+
             <table>
-              <caption class="sr-only">Event leaderboard</caption>
+              <caption class="sr-only">
+                HackArena Leaderboard
+              </caption>
+
               <thead>
                 <tr>
                   <th scope="col">Rank</th>
@@ -275,22 +414,33 @@
                   <th scope="col">Score</th>
                 </tr>
               </thead>
+
               <tbody id="leaderboard-list"></tbody>
             </table>
+
           </div>
 
-          <div class="empty-state">
-            <h3>No results loaded</h3>
+          <div class="empty-state"
+               id="leaderboard-empty">
+
+            <h3>No Results Loaded</h3>
+
             <p>
-              No scores or rankings are fabricated in this preview.
-              Multiple-judge aggregation and tie-breaking rules
-              still need to be finalized.
+              Rankings and scores will appear once
+              actual evaluations are available.
+              Multiple-judge aggregation and
+              tie-breaking rules are not finalized.
             </p>
           </div>
+
         </article>
+
       </section>
 
-      <footer class="footer">HackArena · Team Nexora</footer>
+      <footer class="footer">
+        HackArena · Team Nexora
+      </footer>
+
     </main>
   </div>
 </body>
