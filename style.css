@@ -1,4 +1,5 @@
-/* HACKARENA: WARM GREY + CHARCOAL + ORANGE */
+
+/* HACKARENA LOGIN PAGE */
 
 :root {
   --background: #b4b2a7;
@@ -38,6 +39,11 @@ input {
 
 button {
   cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 button,
@@ -95,12 +101,12 @@ p {
   place-items: center;
 }
 
+/* MAIN */
+
 .team-credit {
   color: #c8bba5;
   font-size: 14px;
 }
-
-/* MAIN */
 
 .main {
   flex: 1;
@@ -151,8 +157,11 @@ p {
 .login-card {
   min-width: 0;
   padding: 30px 26px;
-  background:
-    linear-gradient(145deg, #393b35, var(--charcoal));
+  background: linear-gradient(
+    145deg,
+    #393b35,
+    var(--charcoal)
+  );
   border-radius: 20px;
   box-shadow: 0 18px 35px rgba(40, 43, 33, 0.16);
   display: flex;
@@ -193,6 +202,8 @@ p {
   line-height: 1.5;
 }
 
+/* INPUT FIELDS */
+
 .field {
   margin-bottom: 20px;
   min-width: 0;
@@ -212,13 +223,28 @@ input {
   padding: 13px 14px;
   background: var(--input);
   color: var(--text);
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 9px;
 }
 
 input::placeholder {
   color: #bcc1b2;
   font-size: 13px;
+}
+
+input:focus {
+  border-color: var(--orange-light);
+}
+
+input[aria-invalid="true"] {
+  border-color: #ff9e85;
+}
+
+.field-help {
+  color: #d1d5c7;
+  font-size: 12px;
+  line-height: 1.6;
+  margin: 7px 0 0;
 }
 
 .password-wrapper {
@@ -242,20 +268,28 @@ input::placeholder {
   font-size: 12px;
 }
 
+/* LOGIN BUTTON */
+
 .login-button {
   width: 100%;
   min-height: 50px;
   padding: 13px 15px;
-  background: linear-gradient(135deg, #ff8a45, #f66b24);
+  background: linear-gradient(
+    135deg,
+    #ff8a45,
+    #f66b24
+  );
   color: #281c12;
   border: 0;
   border-radius: 9px;
   font-weight: 700;
   font-size: 15px;
-  transition: transform 150ms ease, filter 150ms ease;
+  transition:
+    transform 150ms ease,
+    filter 150ms ease;
 }
 
-.login-button:hover {
+.login-button:hover:not(:disabled) {
   transform: translateY(-2px);
   filter: brightness(1.07);
 }
@@ -263,6 +297,8 @@ input::placeholder {
 .login-button:active {
   transform: translateY(0);
 }
+
+/* RECOVERY LINKS */
 
 .recovery-links {
   display: flex;
@@ -313,6 +349,36 @@ input::placeholder {
   font-size: 12px;
 }
 
+/* STATUS MESSAGES */
+
+.status-message {
+  color: #d0d5c4;
+  font-size: 12px;
+  line-height: 1.7;
+  margin: 16px 0;
+  overflow-wrap: anywhere;
+}
+
+.status-message:not(:empty) {
+  background: #454b3c;
+  padding: 14px;
+  border-radius: 8px;
+}
+
+.status-message:empty {
+  display: none;
+}
+
+.status-message.error:not(:empty) {
+  background: #663b34;
+  color: #ffe1d7;
+}
+
+.status-message.info:not(:empty) {
+  background: #454b3c;
+  color: #f2eddf;
+}
+
 /* FOOTER */
 
 .footer {
@@ -328,7 +394,7 @@ input::placeholder {
   font-size: 12px;
 }
 
-/* DIALOGS */
+/* MODALS */
 
 .modal {
   width: min(660px, calc(100% - 32px));
@@ -422,11 +488,6 @@ input::placeholder {
   font-size: 12px;
 }
 
-.secondary-button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
 .member-row {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -443,22 +504,15 @@ input::placeholder {
   min-height: 50px;
 }
 
-.form-note,
-.status-message {
+.secondary-button:disabled {
+  opacity: 0.5;
+}
+
+.form-note {
   color: #d0d5c4;
   font-size: 12px;
   line-height: 1.7;
   margin: 16px 0;
-}
-
-.status-message:not(:empty) {
-  background: #454b3c;
-  padding: 14px;
-  border-radius: 8px;
-}
-
-.status-message:empty {
-  margin: 0;
 }
 
 /* TABLET */
