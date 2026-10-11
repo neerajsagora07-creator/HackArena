@@ -1,0 +1,1330 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1">
+
+  <title>HackArena | Organizer Dashboard</title>
+
+  <link rel="stylesheet" href="./organizer.css">
+  <script src="./organizer.js" defer></script>
+</head>
+
+<body>
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+
+    <a class="brand" href="./index.html">
+      <span class="brand-mark">H</span>
+      <span>HackArena</span>
+    </a>
+
+    <p class="sidebar-label">
+      ORGANIZER CONTROL CENTER
+    </p>
+
+    <nav class="navigation"
+         aria-label="Organizer navigation">
+
+      <button type="button"
+              data-page="overview"
+              aria-pressed="true">
+        Overview
+      </button>
+
+      <button type="button"
+              data-page="settings"
+              aria-pressed="false">
+        Event Settings
+      </button>
+
+      <button type="button"
+              data-page="teams"
+              aria-pressed="false">
+        Teams
+      </button>
+
+      <button type="button"
+              data-page="problems"
+              aria-pressed="false">
+        Problem Statements
+      </button>
+
+      <button type="button"
+              data-page="judges"
+              aria-pressed="false">
+        Judges & Invitations
+      </button>
+
+      <button type="button"
+              data-page="timer"
+              aria-pressed="false">
+        Timer & Extra Time
+      </button>
+
+      <button type="button"
+              data-page="submissions"
+              aria-pressed="false">
+        Submissions
+      </button>
+
+      <button type="button"
+              data-page="criteria"
+              aria-pressed="false">
+        Judging Criteria
+      </button>
+
+      <button type="button"
+              data-page="announcements"
+              aria-pressed="false">
+        Announcements
+      </button>
+
+      <button type="button"
+              data-page="analytics"
+              aria-pressed="false">
+        Analytics
+      </button>
+
+    </nav>
+
+    <div class="sidebar-bottom">
+      <strong>Manage the whole journey.</strong>
+      <span>By Team Nexora</span>
+
+      <button type="button"
+              id="logout-button"
+              class="logout-button">
+        Logout
+      </button>
+
+      <p id="logout-status"
+         class="sidebar-message"
+         role="status"></p>
+    </div>
+
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <header class="topbar">
+
+      <div>
+        <p class="breadcrumb">
+          Organizer workspace
+        </p>
+        <h1 id="page-title">Overview</h1>
+      </div>
+
+      <!-- NEW: ORGANIZER BRANDING -->
+      <div class="organizer-branding-header"
+           id="organizer-branding-header"
+           hidden>
+
+        <img id="header-organizer-logo"
+             alt="Event organizer logo"
+             hidden>
+
+        <div>
+          <small id="header-event-name"></small>
+          <strong id="header-organization"></strong>
+        </div>
+
+      </div>
+
+      <span class="role-badge">
+        ORGANIZER
+      </span>
+
+    </header>
+
+    <p class="preview-banner">
+      Frontend preview — no organizer is authenticated.
+      Event branding can be saved in this browser.
+      Live event data is not connected to a server.
+    </p>
+
+    <!-- OVERVIEW -->
+    <section id="overview" class="page">
+
+      <div class="hero">
+
+        <div>
+          <span class="eyebrow">
+            ONE EVENT. COMPLETE CONTROL.
+          </span>
+
+          <h2>
+            Build the experience.<br>
+            Run the arena.
+          </h2>
+
+          <p>
+            Manage your hackathon, configure its rules
+            and follow teams from registration to results.
+          </p>
+
+          <button class="button"
+                  type="button"
+                  data-open="settings">
+            Configure event →
+          </button>
+        </div>
+
+        <div class="hero-note">
+          <span>HACKATHON TIMER</span>
+
+          <strong id="overview-timer">
+            Not connected
+          </strong>
+
+          <p>
+            The website can be available before
+            the timed hackathon starts.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="stats-grid">
+
+        <article class="stat">
+          <span>Registered teams</span>
+
+          <strong id="registered-teams">
+            Not loaded
+          </strong>
+
+          <small id="capacity-summary">
+            Organizer-configurable capacity
+          </small>
+        </article>
+
+        <article class="stat">
+          <span>Submissions</span>
+
+          <strong id="total-submissions">
+            Not loaded
+          </strong>
+
+          <small>
+            No live submission data connected
+          </small>
+        </article>
+
+        <article class="stat">
+          <span>Judging status</span>
+
+          <strong id="overview-judging">
+            Not loaded
+          </strong>
+
+          <small>
+            No evaluation data connected
+          </small>
+        </article>
+
+      </div>
+
+      <article class="panel">
+
+        <h3>Quick Management</h3>
+
+        <p>
+          Access the important sections of your
+          HackArena Control Center.
+        </p>
+
+        <div class="action-row">
+
+          <button type="button"
+                  class="button"
+                  data-open="teams">
+            Manage Teams
+          </button>
+
+          <button type="button"
+                  class="button secondary"
+                  data-open="problems">
+            Manage Problems
+          </button>
+
+          <button type="button"
+                  class="button secondary"
+                  data-open="submissions">
+            View Submissions
+          </button>
+
+        </div>
+      </article>
+
+      <article class="panel section-gap">
+
+        <h3>Dashboard Preview</h3>
+
+        <p>
+          Inspect the frontend layouts of the
+          Participant and Judge dashboards.
+          These links do not authenticate another role.
+        </p>
+
+        <div class="action-row">
+
+          <a class="button"
+             href="./participant.html"
+             target="_blank"
+             rel="noopener">
+            Participant Dashboard ↗
+          </a>
+
+          <a class="button secondary"
+             href="./judge.html"
+             target="_blank"
+             rel="noopener">
+            Judge Dashboard ↗
+          </a>
+
+        </div>
+      </article>
+
+    </section>
+
+    <!-- EVENT SETTINGS -->
+    <section id="settings"
+             class="page"
+             hidden>
+
+      <article class="panel">
+
+        <span class="eyebrow">
+          YOUR HACKATHON
+        </span>
+
+        <h2>Event Settings</h2>
+
+        <p>
+          Configure your event details and capacity.
+          Event branding is saved locally for this
+          frontend preview.
+        </p>
+
+        <form id="settings-form">
+
+          <!-- EVENT NAME / ORGANIZER -->
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="event-name">
+                Hackathon Name
+              </label>
+
+              <input id="event-name"
+                     name="eventName"
+                     type="text"
+                     required
+                     placeholder="Enter hackathon name">
+            </div>
+
+            <div class="field">
+              <label for="organization">
+                Organized By
+              </label>
+
+              <input id="organization"
+                     name="organization"
+                     type="text"
+                     required
+                     placeholder="Example: ACM Student Chapter">
+            </div>
+
+          </div>
+
+          <!-- NEW: ORGANIZER LOGO -->
+
+          <div class="field">
+            <label for="organizer-logo">
+              Organizer Logo
+            </label>
+
+            <input id="organizer-logo"
+                   name="organizerLogo"
+                   type="file"
+                   accept="image/png,image/jpeg,image/webp">
+
+            <p class="help">
+              Select the logo of the organization
+              conducting this event. Maximum size: 1 MB.
+            </p>
+
+            <div id="organizer-logo-preview-box"
+                 class="organizer-logo-preview-box"
+                 hidden>
+
+              <img id="organizer-logo-preview"
+                   alt="Selected organizer logo preview">
+
+            </div>
+          </div>
+
+          <!-- NEW: EVENT DATES -->
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="event-date">
+                Event Start Date
+              </label>
+
+              <input id="event-date"
+                     name="eventDate"
+                     type="date"
+                     required>
+            </div>
+
+            <div class="field">
+              <label for="event-end-date">
+                Event End Date
+              </label>
+
+              <input id="event-end-date"
+                     name="eventEndDate"
+                     type="date"
+                     required>
+            </div>
+
+          </div>
+
+          <!-- NEW: TIME AND VENUE -->
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="event-time">
+                Event Start Time
+              </label>
+
+              <input id="event-time"
+                     name="eventTime"
+                     type="time"
+                     required>
+            </div>
+
+            <div class="field">
+              <label for="event-venue">
+                Event Venue
+              </label>
+
+              <input id="event-venue"
+                     name="eventVenue"
+                     type="text"
+                     placeholder="Enter event venue"
+                     required>
+            </div>
+
+          </div>
+
+          <!-- NEW: EVENT DESCRIPTION -->
+
+          <div class="field">
+            <label for="event-description">
+              Event Description
+            </label>
+
+            <textarea id="event-description"
+                      name="eventDescription"
+                      rows="4"
+                      placeholder="Short description of the hackathon"></textarea>
+          </div>
+
+          <!-- EVENT CAPACITY -->
+
+          <div class="form-grid three-columns">
+
+            <div class="field">
+              <label for="maximum-teams">
+                Maximum teams
+              </label>
+
+              <input id="maximum-teams"
+                     name="maximumTeams"
+                     type="number"
+                     min="1"
+                     step="1"
+                     value="60"
+                     required>
+            </div>
+
+            <div class="field">
+              <label for="maximum-members">
+                Members per team
+              </label>
+
+              <input id="maximum-members"
+                     name="maximumMembers"
+                     type="number"
+                     min="1"
+                     step="1"
+                     value="4"
+                     required>
+            </div>
+
+            <div class="field">
+              <label for="default-problem-capacity">
+                Default teams per problem
+              </label>
+
+              <input id="default-problem-capacity"
+                     name="defaultProblemCapacity"
+                     type="number"
+                     min="1"
+                     step="1"
+                     value="3"
+                     required>
+            </div>
+
+          </div>
+
+          <p class="help">
+            Default event plan: 60 teams, 15 problem
+            statements, 3 teams per problem and
+            4 members per team. These are not fixed limits.
+            The organizer can change capacities.
+          </p>
+
+          <button class="button" type="submit">
+            Save Event Information
+          </button>
+
+          <p id="settings-status"
+             class="status"
+             role="status"></p>
+
+        </form>
+      </article>
+
+    </section>
+
+    <!-- TEAM MANAGEMENT -->
+    <section id="teams" class="page" hidden>
+
+      <article class="panel">
+
+        <span class="eyebrow">
+          PARTICIPATING TEAMS
+        </span>
+
+        <h2>Team Management</h2>
+
+        <p>
+          Registered teams will appear here when
+          the backend and database are connected.
+        </p>
+
+        <div class="table-wrapper">
+
+          <table>
+            <caption class="sr-only">
+              Registered teams
+            </caption>
+
+            <thead>
+              <tr>
+                <th scope="col">Team ID</th>
+                <th scope="col">Team Name</th>
+                <th scope="col">Leader Email</th>
+                <th scope="col">Members</th>
+                <th scope="col">Selected Problem</th>
+              </tr>
+            </thead>
+
+            <tbody id="teams-list"></tbody>
+          </table>
+
+        </div>
+
+        <div id="teams-empty" class="empty-state">
+
+          <h3>No Team Records Loaded</h3>
+
+          <p>
+            Team registration records and management
+            actions will be available after
+            backend integration.
+          </p>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- PROBLEM STATEMENTS -->
+    <section id="problems" class="page" hidden>
+
+      <article class="panel">
+
+        <span class="eyebrow">
+          ORGANIZER-PROVIDED CHALLENGES
+        </span>
+
+        <h2>Problem Statements</h2>
+
+        <p>
+          Add your own problem statements.
+          Each problem can have its own team capacity.
+          Full problems become unavailable for selection.
+        </p>
+
+        <form id="problem-form">
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="problem-code">
+                Problem Code / Number
+              </label>
+
+              <input id="problem-code"
+                     name="problemCode"
+                     type="text"
+                     required
+                     placeholder="Enter problem code">
+            </div>
+
+            <div class="field">
+              <label for="problem-capacity">
+                Team Capacity
+              </label>
+
+              <input id="problem-capacity"
+                     name="problemCapacity"
+                     type="number"
+                     min="1"
+                     step="1"
+                     value="3"
+                     required>
+            </div>
+
+          </div>
+
+          <div class="field">
+            <label for="problem-title">
+              Problem Title
+            </label>
+
+            <input id="problem-title"
+                   name="problemTitle"
+                   type="text"
+                   required>
+          </div>
+
+          <div class="field">
+            <label for="problem-statement">
+              Full Problem Statement
+            </label>
+
+            <textarea id="problem-statement"
+                      name="problemStatement"
+                      rows="6"
+                      required></textarea>
+          </div>
+
+          <button type="submit"
+                  class="button">
+            Check Problem Details
+          </button>
+
+          <p id="problem-status"
+             class="status"
+             role="status"></p>
+
+        </form>
+
+      </article>
+
+      <article class="panel section-gap">
+
+        <h3>Upload Problem Statements</h3>
+
+        <label class="field-label"
+               for="problem-file">
+          Select your source file
+        </label>
+
+        <input id="problem-file"
+               type="file">
+
+        <p id="problem-file-status"
+           class="help"
+           role="status">
+          No file selected. Upload formats and
+          import rules are not finalized.
+        </p>
+
+      </article>
+
+      <!-- PROBLEM LIST -->
+      <article class="panel section-gap">
+
+        <span class="eyebrow">
+          PROBLEM MANAGEMENT
+        </span>
+
+        <h2>Published Problems</h2>
+
+        <p>
+          Organizer-created problems, occupied slots
+          and available capacity will appear below.
+        </p>
+
+        <div class="table-wrapper">
+
+          <table>
+            <caption class="sr-only">
+              Problem list
+            </caption>
+
+            <thead>
+              <tr>
+                <th scope="col">Code</th>
+                <th scope="col">Title</th>
+                <th scope="col">Capacity</th>
+                <th scope="col">Occupied</th>
+                <th scope="col">Status</th>
+              </tr>
+            </thead>
+
+            <tbody id="problem-list"></tbody>
+          </table>
+
+        </div>
+
+        <div id="problem-list-empty"
+             class="empty-state">
+
+          <h3>No Problems Loaded</h3>
+
+          <p>
+            Actual published problem statements will
+            appear here after backend integration.
+          </p>
+
+        </div>
+
+        <div class="empty-state">
+
+          <h3>Visibility Controls</h3>
+
+          <p>
+            The organizer will manage what participants
+            and judges can see. Exact visibility
+            options are not yet finalized.
+          </p>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- JUDGES -->
+    <section id="judges" class="page" hidden>
+
+      <article class="panel">
+
+        <span class="eyebrow">
+          INVITE YOUR EVALUATORS
+        </span>
+
+        <h2>Judges & Invitations</h2>
+
+        <p>
+          Invite judges by email. Invited judges
+          will set their own passwords through
+          secure invitation links.
+        </p>
+
+        <form id="judge-form">
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="judge-name">
+                Judge Name
+              </label>
+
+              <input id="judge-name"
+                     name="judgeName"
+                     type="text"
+                     required>
+            </div>
+
+            <div class="field">
+              <label for="judge-email">
+                Judge Email
+              </label>
+
+              <input id="judge-email"
+                     name="judgeEmail"
+                     type="email"
+                     required>
+            </div>
+
+          </div>
+
+          <button type="submit"
+                  class="button">
+            Send Invitation
+          </button>
+
+          <p id="judge-status"
+             class="status"
+             role="status"></p>
+
+        </form>
+
+        <div class="table-wrapper">
+
+          <table>
+            <thead>
+              <tr>
+                <th>Judge Name</th>
+                <th>Email</th>
+                <th>Invitation Status</th>
+              </tr>
+            </thead>
+
+            <tbody id="judges-list"></tbody>
+          </table>
+
+        </div>
+
+        <div id="judges-empty"
+             class="empty-state">
+
+          <h3>No Judge Records Loaded</h3>
+
+          <p>
+            Judge invitations and account records
+            will appear here after backend integration.
+          </p>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- TIMER -->
+    <section id="timer" class="page" hidden>
+
+      <article class="panel">
+
+        <span class="eyebrow">
+          CONTROL THE TIMED HACKATHON
+        </span>
+
+        <h2>Timer Controls</h2>
+
+        <p>
+          Starting the event timer begins the
+          timed hackathon duration. It does not
+          start or unlock the website.
+        </p>
+
+        <div class="timer-display">
+
+          <span>
+            HACKATHON COUNTDOWN
+          </span>
+
+          <strong id="timer-display">
+            — : — : —
+          </strong>
+
+          <p id="timer-display-status">
+            Live timer not connected
+          </p>
+
+        </div>
+
+        <form id="timer-form">
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="timer-hours">
+                Hours
+              </label>
+
+              <input id="timer-hours"
+                     name="hours"
+                     type="number"
+                     min="0"
+                     step="1"
+                     required>
+            </div>
+
+            <div class="field">
+              <label for="timer-minutes">
+                Minutes
+              </label>
+
+              <input id="timer-minutes"
+                     name="minutes"
+                     type="number"
+                     min="0"
+                     max="59"
+                     step="1"
+                     required>
+            </div>
+
+          </div>
+
+          <div class="action-row">
+
+            <button type="submit"
+                    class="button">
+              Set Duration & Start
+            </button>
+
+            <button id="stop-timer"
+                    type="button"
+                    class="button secondary">
+              Stop Timer
+            </button>
+
+          </div>
+
+          <p id="timer-status"
+             class="status"
+             role="status"></p>
+
+        </form>
+
+        <p class="help">
+          Stop behavior (pause, resume or reset)
+          has not yet been finalized.
+        </p>
+
+      </article>
+
+      <article class="panel section-gap">
+
+        <h3>Grant Extra Time</h3>
+
+        <p>
+          Extra time can be granted to one team
+          or all participating teams, including
+          after expiry.
+        </p>
+
+        <form id="extension-form">
+
+          <div class="field">
+            <label for="extension-scope">
+              Who receives extra time?
+            </label>
+
+            <select id="extension-scope"
+                    name="scope">
+
+              <option value="team">
+                Particular Team
+              </option>
+
+              <option value="event">
+                All Participating Teams
+              </option>
+
+            </select>
+          </div>
+
+          <div id="extension-team-field"
+               class="field">
+
+            <label for="extension-team">
+              Team ID
+            </label>
+
+            <input id="extension-team"
+                   name="teamId"
+                   type="text"
+                   required
+                   placeholder="Enter registered Team ID">
+          </div>
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label for="extra-hours">
+                Extra Hours
+              </label>
+
+              <input id="extra-hours"
+                     name="extraHours"
+                     type="number"
+                     min="0"
+                     step="1"
+                     value="0"
+                     required>
+            </div>
+
+            <div class="field">
+              <label for="extra-minutes">
+                Extra Minutes
+              </label>
+
+              <input id="extra-minutes"
+                     name="extraMinutes"
+                     type="number"
+                     min="0"
+                     max="59"
+                     step="1"
+                     required>
+            </div>
+
+          </div>
+
+          <button class="button"
+                  type="submit">
+            Grant Extra Time
+          </button>
+
+          <p id="extension-status"
+             class="status"
+             role="status"></p>
+
+        </form>
+
+        <p class="help">
+          Backend rules will determine applicable
+          deadlines and resolve overlapping extensions.
+        </p>
+
+      </article>
+
+    </section>
+
+    <!-- SUBMISSION MONITORING -->
+    <section id="submissions"
+             class="page"
+             hidden>
+
+      <div class="stats-grid">
+
+        <article class="stat">
+          <span>Submitted Projects</span>
+
+          <strong id="submitted-count">
+            Not loaded
+          </strong>
+
+          <small>Official submissions</small>
+        </article>
+
+        <article class="stat">
+          <span>Pending Submissions</span>
+
+          <strong id="pending-count">
+            Not loaded
+          </strong>
+
+          <small>
+            Registered teams awaiting submission
+          </small>
+        </article>
+
+        <article class="stat">
+          <span>Evaluated Projects</span>
+
+          <strong id="evaluated-count">
+            Not loaded
+          </strong>
+
+          <small>Judging data not connected</small>
+        </article>
+
+      </div>
+
+      <article class="panel">
+
+        <span class="eyebrow">
+          FOLLOW TEAM PROGRESS
+        </span>
+
+        <h2>Submission Monitoring</h2>
+
+        <p>
+          Track each team's official submission
+          and evaluation status.
+        </p>
+
+        <div class="table-wrapper">
+
+          <table>
+            <caption class="sr-only">
+              Official submissions
+            </caption>
+
+            <thead>
+              <tr>
+                <th scope="col">Team</th>
+                <th scope="col">Problem Code</th>
+                <th scope="col">Project</th>
+                <th scope="col">PPT</th>
+                <th scope="col">Submission Status</th>
+                <th scope="col">Judging Status</th>
+              </tr>
+            </thead>
+
+            <tbody id="submissions-list"></tbody>
+          </table>
+
+        </div>
+
+        <div id="submissions-empty"
+             class="empty-state">
+
+          <h3>No Submissions Loaded</h3>
+
+          <p>
+            Project details, repository and demo
+            links, presentations, submission statuses
+            and judging progress will appear here.
+          </p>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <!-- JUDGING CRITERIA -->
+    <section id="criteria"
+             class="page"
+             hidden>
+
+      <article class="panel">
+
+        <span class="eyebrow">
+          STRUCTURED EVALUATION
+        </span>
+
+        <h2>Judging Criteria</h2>
+
+        <p>
+          Review the scoring rubric. The current
+          HackArena criteria total 100 marks.
+        </p>
+
+        <form id="criteria-form">
+
+          <div id="criteria-list"></div>
+
+          <div class="action-row">
+
+            <button id="add-criterion"
+                    type="button"
+                    class="button secondary">
+              + Add Criterion
+            </button>
+
+          </div>
+
+          <div class="total-box">
+
+            <span>Rubric Total</span>
+
+            <output id="rubric-total"
+                    aria-live="polite">
+              100 / 100
+            </output>
+
+          </div>
+
+          <button type="submit"
+                  class="button">
+            Check Rubric
+          </button>
+
+          <p id="criteria-status"
+             class="status"
+             role="status"></p>
+
+        </form>
+
+        <p class="help">
+          The starting rubric follows HackArena's
+          agreed 25/25/20/15/15 distribution.
+          Editing it here does not save or
+          change the official rubric.
+        </p>
+
+      </article>
+
+    </section>
+
+    <!-- ANNOUNCEMENTS -->
+    <section id="announcements"
+             class="page"
+             hidden>
+
+      <article class="panel">
+
+        <span class="eyebrow">
+          KEEP EVERYONE INFORMED
+        </span>
+
+        <h2>Announcements</h2>
+
+        <p>
+          Publish event updates before or
+          during the hackathon.
+        </p>
+
+        <form id="announcement-form">
+
+          <div class="field">
+            <label for="announcement-title">
+              Title
+            </label>
+
+            <input id="announcement-title"
+                   name="title"
+                   type="text"
+                   required>
+          </div>
+
+          <div class="field">
+            <label for="announcement-message">
+              Announcement
+            </label>
+
+            <textarea id="announcement-message"
+                      name="message"
+                      rows="5"
+                      required></textarea>
+          </div>
+
+          <div class="action-row">
+
+            <button id="preview-announcement"
+                    class="button secondary"
+                    type="button">
+              Preview
+            </button>
+
+            <button type="submit"
+                    class="button">
+              Publish Announcement
+            </button>
+
+          </div>
+
+          <p id="announcement-status"
+             class="status"
+             role="status"></p>
+
+        </form>
+
+        <article id="announcement-preview"
+                 class="empty-state"
+                 hidden>
+
+          <span class="eyebrow">
+            LOCAL PREVIEW · NOT PUBLISHED
+          </span>
+
+          <h3 id="preview-title"></h3>
+          <p id="preview-message"></p>
+
+        </article>
+
+      </article>
+
+    </section>
+
+    <!-- ANALYTICS -->
+    <section id="analytics"
+             class="page"
+             hidden>
+
+      <article class="panel">
+
+        <span class="eyebrow">
+          UNDERSTAND YOUR EVENT
+        </span>
+
+        <h2>Analytics & Hackathon Health</h2>
+
+        <dl class="details-list">
+
+          <div>
+            <dt>Total Teams</dt>
+            <dd id="analytics-teams">
+              Not loaded
+            </dd>
+          </div>
+
+          <div>
+            <dt>Total Submissions</dt>
+            <dd id="analytics-submissions">
+              Not loaded
+            </dd>
+          </div>
+
+          <div>
+            <dt>Full Problems</dt>
+            <dd id="analytics-full">
+              Not loaded
+            </dd>
+          </div>
+
+          <div>
+            <dt>Judging Status</dt>
+            <dd id="analytics-judging">
+              Not loaded
+            </dd>
+          </div>
+
+          <div>
+            <dt>Overall Event Progress</dt>
+            <dd id="analytics-progress">
+              Not loaded
+            </dd>
+          </div>
+
+        </dl>
+
+        <div class="empty-state">
+
+          <h3>Hackathon Health</h3>
+
+          <p>
+            Event health and progress will be
+            displayed using actual event data.
+            No fake statistics or unconfirmed
+            health formula are used.
+          </p>
+
+        </div>
+
+      </article>
+
+    </section>
+
+    <footer class="footer">
+      HackArena · Team Nexora
+    </footer>
+
+  </main>
+</div>
+</body>
+</html>
