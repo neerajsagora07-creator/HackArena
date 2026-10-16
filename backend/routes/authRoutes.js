@@ -198,4 +198,131 @@ router.post("/login", async (req, res) => {
 
 });
 
+ // ====================================
+ // ORGANIZER LOGIN API
+ // POST /api/auth/organizer/login
+ // ====================================
+
+const organizerLoginLimit = require("express-rate-limit")({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: "Too many login attempts. Try again later."
+    }
+});
+
+router.post("/organizer/login", organizerLoginLimit, async (req, res) => {
+
+    try {
+
+        const { email, password } = req.body;
+
+        // Validate input
+        if (
+            typeof email !== "string" ||
+            typeof password !== "string" ||
+            !email.trim() ||
+            !password
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and Password are required."
+            });
+        }
+
+        // Find Organizer in MongoDB
+        const organizer = await User.findOne({
+            email: email.trim().toLowerCase(),
+            role: "organizer"
+        }).select("+passwordHash");
+
+        if (!organizer) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid Email or Password."
+            });
+        }
+
+        // Verify Password
+        const passwordMatch = await bcrypt.compare(
+            password,
+            organizer.passwordHash
+        );
+
+        if (!passwordMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid Email or Password."
+            });
+        }
+
+        // Generate JWT Token
+        const token = jwt.sign(
+            {
+                id: organizer._id.toString(),
+                role: "organizer"
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "2h",
+                algorithm: "HS256"
+            }
+        );
+
+        res.json({
+            success: true,
+            message: "Organizer Login Successful!",
+            token,
+            organizer: {
+                id: organizer._id,
+                name: organizer.name,
+                email: organizer.email,
+                role: organizer.role
+            }
+        });
+
+    } catch (error) {
+
+        console.error(
+            "Organizer Login Error:",
+            error.message
+        );
+
+        res.status(500).json({
+            success: false,
+            message: "Organizer Login Failed."
+        });
+
+    }
+
+});
+
+
 module.exports = router;
+
+ // ====================================
+ // VERIFY ORGANIZER LOGIN
+ // GET /api/auth/organizer/me
+ // ====================================
+
+router.get(
+    "/organizer/me",
+    require("../middleware/requireOrganizer"),
+    (req, res) => {
+
+        res.json({
+            success: true,
+            message: "Organizer Authenticated Successfully!",
+            organizer: {
+                id: req.organizer._id,
+                name: req.organizer.name,
+                email: req.organizer.email,
+                role: req.organizer.role
+            }
+        });
+
+    }
+);

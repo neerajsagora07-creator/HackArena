@@ -21,6 +21,7 @@ app.use(express.json({ limit: "2mb" }));
 const eventRoutes = require("./routes/eventRoutes");
 const authRoutes = require("./routes/authRoutes");
 const teamRoutes = require("./routes/teamRoutes");
+const problemRoutes = require("./routes/problemRoutes");
 
 // ====================================
 // HOME ROUTE
@@ -63,6 +64,7 @@ app.use("/api/auth", authRoutes);
 // ====================================
 
 app.use("/api/teams", teamRoutes);
+app.use("/api/problems", problemRoutes);
 
 // ====================================
 // MONGODB CONNECTION

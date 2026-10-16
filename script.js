@@ -115,14 +115,175 @@ document.querySelectorAll(".login-form").forEach((form) => {
 
         const role = form.dataset.role;
 
-        // Judge and Organizer backend will be connected later
-        if (role !== "Participant") {
+        // ORGANIZER LOGIN
+        if (role === "Organizer") {
 
-            status.textContent =
-                role + " login backend is not connected yet.";
+            const email = document.getElementById(
+                "organizer-email"
+            ).value.trim().toLowerCase();
+
+            const password = document.getElementById(
+                "organizer-password"
+            ).value;
+
+            const loginButton = form.querySelector(
+                'button[type="submit"]'
+            );
+
+            loginButton.disabled = true;
+            status.textContent = "Checking Organizer Login...";
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:5000/api/auth/organizer/login",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password
+                        })
+                    }
+                );
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success || !result.token) {
+                    throw new Error(
+                        result.message || "Organizer Login Failed."
+                    );
+                }
+
+                if (result.organizer?.role !== "organizer") {
+                    throw new Error("Organizer access denied.");
+                }
+
+                sessionStorage.setItem(
+                    "hackarenaOrganizerToken",
+                    result.token
+                );
+
+                sessionStorage.setItem(
+                    "hackarenaOrganizer",
+                    JSON.stringify(result.organizer)
+                );
+
+                status.textContent = "Organizer Login Successful!";
+
+                window.location.href = "./organizer.html";
+
+            } catch (error) {
+
+                status.textContent = error.message;
+
+            } finally {
+
+                loginButton.disabled = false;
+
+            }
 
             return;
         }
+
+
+       
+        // ====================================
+        // ORGANIZER LOGIN
+        // ====================================
+
+        if (role === "Organizer") {
+
+            const email = document.getElementById(
+                "organizer-email"
+            ).value.trim().toLowerCase();
+
+            const password = document.getElementById(
+                "organizer-password"
+            ).value;
+
+            const loginButton = form.querySelector(
+                'button[type="submit"]'
+            );
+
+            loginButton.disabled = true;
+            status.textContent = "Checking Organizer credentials...";
+
+            try {
+
+                const response = await fetch(
+                    "http://127.0.0.1:5000/api/auth/organizer/login",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            email: email,
+                            password: password
+                        })
+                    }
+                );
+
+                const result = await response.json();
+
+                if (
+                    !response.ok ||
+                    !result.success ||
+                    !result.token ||
+                    result.organizer?.role !== "organizer"
+                ) {
+                    throw new Error(
+                        result.message || "Organizer Login Failed."
+                    );
+                }
+
+                // Save Organizer session
+                sessionStorage.setItem(
+                    "hackarenaOrganizerToken",
+                    result.token
+                );
+
+                sessionStorage.setItem(
+                    "hackarenaOrganizer",
+                    JSON.stringify(result.organizer)
+                );
+
+                status.textContent = "Organizer Login Successful!";
+
+                // Open Organizer Dashboard
+                window.location.href = "./organizer.html";
+
+            } catch (error) {
+
+                status.textContent =
+                    error instanceof TypeError
+                        ? "Cannot connect to backend. Check server."
+                        : error.message;
+
+            } finally {
+
+                loginButton.disabled = false;
+
+            }
+
+            return;
+        }
+
+        // ====================================
+        // JUDGE LOGIN (COMING LATER)
+        // ====================================
+
+        if (role === "Judge") {
+
+            status.textContent =
+                "Judge login backend is not connected yet.";
+
+            return;
+        }
+
 
         const teamId = document.getElementById("team-id")
             .value.trim().toUpperCase();

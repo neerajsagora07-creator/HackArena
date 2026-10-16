@@ -1,4 +1,6 @@
 "use strict";
+// Hide dashboard until Organizer Login is verified
+document.documentElement.style.visibility = "hidden";
 
 // ---------------------------------
 // HACKARENA ORGANIZER DASHBOARD
@@ -522,22 +524,148 @@ function renderTeams() {
 
 const problemForm =
   document.getElementById("problem-form");
+  
+  let editingProblemId = null;
 
-problemForm.addEventListener("submit", (event) => {
 
-  event.preventDefault();
+ // ====================================
+ // CREATE AND EDIT PROBLEM STATEMENTS
+ // ====================================
 
-  if (!validateForm(problemForm)) {
-    return;
-  }
+problemForm.addEventListener("submit", async (event) => {
 
-  document.getElementById("problem-status")
-    .textContent =
-    "Problem details are valid for this preview. " +
-    "No problem has been created or published. " +
-    "The backend will check the code, store the " +
-    "statement and enforce its capacity.";
+    event.preventDefault();
+
+    if (!validateForm(problemForm)) {
+        return;
+    }
+
+    const token = sessionStorage.getItem(
+        "hackarenaOrganizerToken"
+    );
+
+    if (!token) {
+        window.location.replace("./index.html");
+        return;
+    }
+
+    const code = document.getElementById(
+        "problem-code"
+    ).value.trim().toUpperCase();
+
+    const title = document.getElementById(
+        "problem-title"
+    ).value.trim();
+
+    const statement = document.getElementById(
+        "problem-statement"
+    ).value.trim();
+
+    const capacity = Number(
+        document.getElementById("problem-capacity").value
+    );
+
+    const status = document.getElementById(
+        "problem-status"
+    );
+
+    const submitButton = problemForm.querySelector(
+        'button[type="submit"]'
+    );
+
+    if (!Number.isSafeInteger(capacity) || capacity < 1) {
+        status.textContent = "Enter a valid Team Capacity.";
+        return;
+    }
+
+    // Check Create or Edit Mode
+    const isEditing = editingProblemId !== null;
+
+    const url = isEditing
+        ? "http://127.0.0.1:5000/api/problems/" + editingProblemId
+        : "http://127.0.0.1:5000/api/problems";
+
+    const method = isEditing ? "PUT" : "POST";
+
+    submitButton.disabled = true;
+
+    status.textContent = isEditing
+        ? "Updating Problem Statement..."
+        : "Saving Problem Statement...";
+
+    try {
+
+        const response = await fetch(url, {
+            method: method,
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+            body: JSON.stringify({
+                code: code,
+                title: title,
+                statement: statement,
+                capacity: capacity
+            })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Failed to save Problem."
+            );
+        }
+
+        if (isEditing) {
+
+            // Update existing Problem
+            const index = organizerData.problems.findIndex(
+                (problem) => problem.id === editingProblemId
+            );
+
+            if (index !== -1) {
+                organizerData.problems[index] = {
+                    ...organizerData.problems[index],
+                    ...result.problem
+                };
+            }
+
+        } else {
+
+            // Add newly created Problem
+            organizerData.problems.push(result.problem);
+
+        }
+
+        // Refresh Problem Table
+        renderProblems();
+
+        // Reset Form
+        problemForm.reset();
+
+        editingProblemId = null;
+
+        submitButton.textContent = "Check Problem Details";
+
+        status.textContent = isEditing
+            ? "Problem Statement Updated Successfully!"
+            : "Problem Statement Created Successfully!";
+
+    } catch (error) {
+
+        status.textContent = error.message;
+
+    } finally {
+
+        submitButton.disabled = false;
+
+    }
+
 });
+
+
+
 
 function renderProblems() {
 
@@ -607,6 +735,55 @@ function renderProblems() {
     }
 
     statusCell.append(badge);
+    
+        // ====================================
+        // EDIT PROBLEM BUTTON
+        // ====================================
+
+        const editButton = document.createElement("button");
+
+        editButton.type = "button";
+        editButton.textContent = "Edit";
+        editButton.className = "secondary-button";
+
+        editButton.style.marginLeft = "10px";
+
+        editButton.addEventListener("click", () => {
+
+            // Remember selected Problem ID
+            editingProblemId = problem.id;
+
+            // Fill existing details in form
+            document.getElementById("problem-code").value =
+                problem.code;
+
+            document.getElementById("problem-title").value =
+                problem.title;
+
+            document.getElementById("problem-statement").value =
+                problem.statement;
+
+            document.getElementById("problem-capacity").value =
+                problem.capacity;
+
+            // Change submit button label
+            problemForm.querySelector(
+                'button[type="submit"]'
+            ).textContent = "Save Changes";
+
+            document.getElementById("problem-status")
+                .textContent =
+                "Editing Problem: " + problem.code;
+
+            // Scroll to Problem Form
+            problemForm.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+
+        });
+
+        statusCell.append(editButton);
 
     row.append(statusCell);
 
@@ -1287,20 +1464,77 @@ function updateOverview() {
 // LOGOUT
 // ---------------------------------
 
+
+ // ====================================
+ // ORGANIZER LOGOUT
+ // ====================================
+
 document.getElementById("logout-button")
-  .addEventListener("click", () => {
+    .addEventListener("click", () => {
 
-    document.getElementById("logout-status")
-      .textContent =
-      "Logout is not connected yet. " +
-      "No authenticated session has been ended.";
+        // Remove Organizer login token
+        sessionStorage.removeItem(
+            "hackarenaOrganizerToken"
+        );
 
-    // Real logout requires backend authentication.
-  });
+        // Remove Organizer information
+        sessionStorage.removeItem(
+            "hackarenaOrganizer"
+        );
+
+        // Redirect to login page
+        window.location.replace("./index.html");
+
+    });
+
 
 // ---------------------------------
 // INITIAL PAGE SETUP
 // ---------------------------------
+
+ // ====================================
+ // LOAD SAVED PROBLEMS FROM MONGODB
+ // ====================================
+
+async function loadProblems() {
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/problems",
+            {
+                method: "GET",
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (
+            !response.ok ||
+            !result.success ||
+            !Array.isArray(result.problems)
+        ) {
+            throw new Error("Failed to load Problems.");
+        }
+
+        // Store MongoDB Problems in Dashboard
+        organizerData.problems = result.problems;
+
+        // Update Problem Statements Table
+        renderProblems();
+
+    } catch (error) {
+
+        console.error("Problem Load Error:", error);
+
+        document.getElementById("problem-status")
+            .textContent =
+            "Could not load saved Problems. Check Backend Server.";
+
+    }
+
+}
 
 function initializeOrganizer() {
 
@@ -1308,6 +1542,7 @@ function initializeOrganizer() {
 
   renderTeams();
   renderProblems();
+  loadProblems();
   renderJudges();
   renderSubmissions();
 
@@ -1316,7 +1551,104 @@ function initializeOrganizer() {
   updateOverview();
 }
 
-initializeOrganizer();
+
+ // ====================================
+ // ORGANIZER LOGIN VERIFICATION
+ // ====================================
+
+async function verifyOrganizerLogin() {
+
+    const token = sessionStorage.getItem(
+        "hackarenaOrganizerToken"
+    );
+
+    // If no token, go back to login
+    if (!token) {
+        window.location.replace("./index.html");
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/auth/organizer/me",
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        // Invalid or expired login
+        if (
+            response.status === 401 ||
+            response.status === 403
+        ) {
+            sessionStorage.removeItem(
+                "hackarenaOrganizerToken"
+            );
+
+            sessionStorage.removeItem(
+                "hackarenaOrganizer"
+            );
+
+            window.location.replace("./index.html");
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error("Backend verification failed.");
+        }
+
+        const result = await response.json();
+
+        // Check Organizer role
+        if (
+            !result.success ||
+            result.organizer?.role !== "organizer"
+        ) {
+
+            sessionStorage.removeItem(
+                "hackarenaOrganizerToken"
+            );
+
+            sessionStorage.removeItem(
+                "hackarenaOrganizer"
+            );
+
+            window.location.replace("./index.html");
+            return;
+        }
+
+        // Login successfully verified
+        initializeOrganizer();
+
+        // Show dashboard
+        document.documentElement.style.visibility = "visible";
+
+    } catch (error) {
+
+        console.error("Organizer Verification Error:", error);
+
+        document.body.replaceChildren();
+
+        const message = document.createElement("p");
+
+        message.textContent =
+            "Cannot verify Organizer login. Check backend server and refresh.";
+
+        document.body.append(message);
+
+        document.documentElement.style.visibility = "visible";
+
+    }
+}
+
+// Start Organizer Login Verification
+verifyOrganizerLogin();
+
 
 // ---------------------------------
 // FUTURE BACKEND INTEGRATION
