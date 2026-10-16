@@ -12,6 +12,62 @@
   <script src="./event-display.js" defer></script>
 </head>
 
+<!-- EMAIL OTP VERIFICATION -->
+
+<dialog id="verify-dialog" class="modal small-modal">
+
+    <div class="modal-heading">
+
+        <h2>Verify Team Email</h2>
+
+        <button type="button"
+                class="close-button"
+                data-close="verify-dialog">
+            ×
+        </button>
+
+    </div>
+
+    <p class="modal-description">
+        Enter the 6-digit OTP sent to your Team Leader Email.
+    </p>
+
+    <form id="verify-form">
+
+        <div class="field">
+
+            <label for="verify-otp">
+                Enter OTP
+            </label>
+
+            <input
+                type="text"
+                id="verify-otp"
+                placeholder="Enter 6-digit OTP"
+                inputmode="numeric"
+                pattern="[0-9]{6}"
+                maxlength="6"
+                autocomplete="one-time-code"
+                required
+            >
+
+        </div>
+
+        <button type="submit" class="login-button">
+            Verify Email
+        </button>
+
+        <p id="verify-status"
+           class="status-message"
+           role="status"
+           aria-live="polite">
+        </p>
+
+    </form>
+
+</dialog>
+
+
 <body>
 
   <!-- HEADER -->

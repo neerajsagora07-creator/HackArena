@@ -1,5 +1,7 @@
 
 "use strict";
+// Keep dashboard hidden until login is verified
+document.documentElement.style.visibility = "hidden";
 
 // ---------------------------------
 // HACKARENA PARTICIPANT DASHBOARD
@@ -531,26 +533,30 @@ function updateAchievements() {
   });
 }
 
-// ---------------------------------
-// LOGOUT
-// ---------------------------------
+
+ // ---------------------------------
+ // LOGOUT
+ // ---------------------------------
 
 const logoutButton =
-  document.getElementById("logout-button");
+    document.getElementById("logout-button");
 
-const logoutStatus =
-  document.getElementById("logout-status");
+function logoutParticipant() {
+
+    // Clear browser login session
+    sessionStorage.removeItem("hackarenaTeamToken");
+    sessionStorage.removeItem("hackarenaTeam");
+
+    // Return to Login Page
+    window.location.replace("./index.html");
+}
 
 logoutButton.addEventListener("click", () => {
 
-  // No real authentication session exists yet.
-  // The backend must invalidate the session
-  // before redirecting to the login page.
+    logoutParticipant();
 
-  logoutStatus.textContent =
-    "Logout is not connected yet. " +
-    "No session has been ended.";
 });
+
 
 // ---------------------------------
 // INITIAL DASHBOARD RENDER
@@ -570,7 +576,152 @@ function initializeDashboard() {
   updateAchievements();
 }
 
-initializeDashboard();
+
+ // ====================================
+ // VERIFY LOGIN AND LOAD TEAM
+ // ====================================
+
+async function loadAuthenticatedTeam() {
+
+    const token = sessionStorage.getItem(
+        "hackarenaTeamToken"
+    );
+
+    // No login token
+    if (!token) {
+        logoutParticipant();
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/teams/me",
+            {
+                method: "GET",
+                headers: {
+                    Authorization: "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (
+            !response.ok ||
+            !result.success ||
+            !result.team
+        ) {
+            throw new Error(
+                result.message || "Invalid session."
+            );
+        }
+
+        const team = result.team;
+
+        // Real team details from MongoDB
+        participantState.team = {
+            name: team.teamName,
+            teamId: team.teamId,
+            leaderName: team.leaderName,
+            leaderEmail: team.leaderEmail,
+            memberLimit: null,
+            members: team.memberNames || []
+        };
+
+        // Registration verified by backend
+        participantState.achievements.registration = true;
+
+        // ====================================
+        // LOAD REAL EVENT SETTINGS
+        // ====================================
+
+        try {
+
+            const eventResponse = await fetch(
+                "http://127.0.0.1:5000/api/event",
+                {
+                    method: "GET",
+                    cache: "no-store"
+                }
+            );
+
+            if (!eventResponse.ok) {
+                throw new Error("Event settings unavailable.");
+            }
+
+            const eventResult = await eventResponse.json();
+
+            if (eventResult.success && eventResult.event) {
+
+                const eventData = eventResult.event;
+
+                // Maximum Teams from Organizer
+                if (
+                    Number.isInteger(eventData.maximumTeams) &&
+                    eventData.maximumTeams > 0
+                ) {
+                    participantState.teamCapacity =
+                        eventData.maximumTeams;
+                }
+
+                // Maximum Members from Organizer
+                if (
+                    Number.isInteger(eventData.maximumMembers) &&
+                    eventData.maximumMembers > 0
+                ) {
+                    participantState.team.memberLimit =
+                        eventData.maximumMembers;
+                }
+
+                console.log(
+                    "Event settings loaded from MongoDB."
+                );
+
+            }
+
+        } catch (error) {
+
+            console.warn(
+                "Could not load event settings:",
+                error.message
+            );
+
+        }
+
+        // Render existing dashboard
+        
+        initializeDashboard();
+
+        const banner = document.getElementById(
+            "preview-banner"
+        );
+
+        if (banner) {
+            banner.textContent =
+                "Team login verified successfully. " +
+                "Other dashboard features are being connected.";
+        }
+
+        // Show dashboard after authentication
+        document.documentElement.style.visibility =
+            "visible";
+
+    } catch (error) {
+
+        console.error(
+            "Participant Authentication:",
+            error.message
+        );
+
+        logoutParticipant();
+
+    }
+}
+
+loadAuthenticatedTeam();
+
 
 // ---------------------------------
 // BACKEND INTEGRATION NOTES

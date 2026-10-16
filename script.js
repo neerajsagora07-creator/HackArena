@@ -1,266 +1,660 @@
+
 "use strict";
 
-// This is a frontend default.
-// Later, load the member limit from organizer settings on the server.
+// ====================================
+// HACKARENA API SETTINGS
+// ====================================
+
+const API_URL = "http://127.0.0.1:5000/api/teams";
+
 const eventSettings = {
-  maxMembersPerTeam: 4
+    maxMembersPerTeam: 4
 };
 
-// -----------------------------
-// PASSWORD SHOW / HIDE
-// -----------------------------
+// Team email for OTP verification
+let pendingLeaderEmail =
+    sessionStorage.getItem("hackarenaPendingEmail") || "";
 
-document.querySelectorAll(".show-password").forEach((button) => {
-  const originalLabel = button.getAttribute("aria-label");
+// ====================================
+// SEND DATA TO BACKEND
+// ====================================
 
-  button.addEventListener("click", () => {
-    const input = document.getElementById(button.dataset.target);
-    const isShowing = input.type === "password";
+async function sendRequest(endpoint, data) {
 
-    input.type = isShowing ? "text" : "password";
-    button.textContent = isShowing ? "Hide" : "Show";
+    let response;
 
-    button.setAttribute("aria-pressed", String(isShowing));
-    button.setAttribute(
-      "aria-label",
-      isShowing
-        ? originalLabel.replace("Show", "Hide")
-        : originalLabel
-    );
-  });
-});
+    try {
+        response = await fetch(API_URL + endpoint, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(data)
+        });
+    } catch (error) {
+        throw new Error(
+            "Cannot connect to backend. Please start node SERVER.JS."
+        );
+    }
 
-// -----------------------------
-// DIALOG CONTROLS
-// -----------------------------
+    const result = await response.json();
 
-document.querySelectorAll("[data-close]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const dialog = document.getElementById(button.dataset.close);
-    dialog.close();
-  });
-});
+    if (!response.ok || !result.success) {
+        throw new Error(result.message || "Something went wrong.");
+    }
 
-const noticeDialog = document.getElementById("notice-dialog");
-const noticeMessage = document.getElementById("notice-message");
-
-function showNotice(message) {
-  noticeMessage.textContent = message;
-
-  if (!noticeDialog.open) {
-    noticeDialog.showModal();
-  }
+    return result;
 }
 
-// -----------------------------
-// LOGIN FORM VALIDATION
-// -----------------------------
+// ====================================
+// PASSWORD SHOW / HIDE
+// ====================================
+
+document.querySelectorAll(".show-password").forEach((button) => {
+
+    const originalLabel = button.getAttribute("aria-label");
+
+    button.addEventListener("click", () => {
+
+        const input = document.getElementById(button.dataset.target);
+
+        const isShowing = input.type === "password";
+
+        input.type = isShowing ? "text" : "password";
+
+        button.textContent = isShowing ? "Hide" : "Show";
+
+        button.setAttribute("aria-pressed", String(isShowing));
+
+        button.setAttribute(
+            "aria-label",
+            isShowing
+                ? originalLabel.replace("Show", "Hide")
+                : originalLabel
+        );
+
+    });
+
+});
+
+// ====================================
+// DIALOG CONTROLS
+// ====================================
+
+document.querySelectorAll("[data-close]").forEach((button) => {
+
+    button.addEventListener("click", () => {
+
+        const dialog = document.getElementById(
+            button.dataset.close
+        );
+
+        if (dialog) {
+            dialog.close();
+        }
+
+    });
+
+});
+
+// ====================================
+// PARTICIPANT LOGIN
+// ====================================
 
 document.querySelectorAll(".login-form").forEach((form) => {
-  form.addEventListener("submit", (event) => {
-    event.preventDefault();
 
-    const role = form.dataset.role;
+    const status = form.querySelector(".login-status");
 
-    showNotice(
-      `${role} login is not connected yet. ` +
-      "The backend will verify your credentials and permissions " +
-      "before opening the correct dashboard. " +
-      "No login has been performed."
-    );
-  });
+    form.addEventListener("input", () => {
+        status.textContent = "";
+    });
+
+    form.addEventListener("submit", async (event) => {
+
+        event.preventDefault();
+
+        const role = form.dataset.role;
+
+        // Judge and Organizer backend will be connected later
+        if (role !== "Participant") {
+
+            status.textContent =
+                role + " login backend is not connected yet.";
+
+            return;
+        }
+
+        const teamId = document.getElementById("team-id")
+            .value.trim().toUpperCase();
+
+        const password = document.getElementById(
+            "team-password"
+        ).value;
+
+        const loginButton = form.querySelector(
+            'button[type="submit"]'
+        );
+
+        loginButton.disabled = true;
+
+        status.textContent = "Checking Team ID and Password...";
+
+        try {
+
+            const result = await sendRequest("/login", {
+                teamId: teamId,
+                password: password
+            });
+
+            // Save temporary login session
+            sessionStorage.setItem(
+                "hackarenaTeamToken",
+                result.token
+            );
+
+            sessionStorage.setItem(
+                "hackarenaTeam",
+                JSON.stringify(result.team)
+            );
+
+            status.textContent = "Login Successful!";
+
+            // Open participant dashboard
+            window.location.href = "./participant.html";
+
+        } catch (error) {
+
+            status.textContent = error.message;
+
+        } finally {
+
+            loginButton.disabled = false;
+
+        }
+
+    });
+
 });
 
-// -----------------------------
+// ====================================
 // TEAM REGISTRATION
-// -----------------------------
+// ====================================
 
 const registerDialog = document.getElementById("register-dialog");
+
 const registerForm = document.getElementById("register-form");
+
 const registerStatus = document.getElementById("register-status");
 
-document.getElementById("open-register").addEventListener("click", () => {
-  registerStatus.textContent = "";
-  registerDialog.showModal();
+const openRegisterButton = document.getElementById("open-register");
+
+openRegisterButton.addEventListener("click", () => {
+
+    registerStatus.textContent = "";
+
+    registerDialog.showModal();
+
 });
 
+// ====================================
+// TEAM MEMBERS
+// ====================================
+
 const addMemberButton = document.getElementById("add-member");
+
 const memberList = document.getElementById("member-list");
+
 const memberCount = document.getElementById("member-count");
 
 let memberSequence = 0;
 
 function updateMemberCount() {
-  const totalMembers = memberList.children.length + 1;
 
-  memberCount.textContent =
-    `${totalMembers} / ${eventSettings.maxMembersPerTeam} members ` +
-    "(including the leader)";
+    const totalMembers = memberList.children.length + 1;
 
-  addMemberButton.disabled =
-    totalMembers >= eventSettings.maxMembersPerTeam;
+    memberCount.textContent =
+        totalMembers + " / " +
+        eventSettings.maxMembersPerTeam +
+        " members (including the leader)";
+
+    addMemberButton.disabled =
+        totalMembers >= eventSettings.maxMembersPerTeam;
+
 }
 
 addMemberButton.addEventListener("click", () => {
-  const totalMembers = memberList.children.length + 1;
 
-  if (totalMembers >= eventSettings.maxMembersPerTeam) {
-    return;
-  }
+    const totalMembers = memberList.children.length + 1;
 
-  memberSequence += 1;
+    if (totalMembers >= eventSettings.maxMembersPerTeam) {
+        return;
+    }
 
-  const inputId = `member-name-${memberSequence}`;
+    memberSequence++;
 
-  const row = document.createElement("div");
-  row.className = "member-row";
+    const inputId = "member-name-" + memberSequence;
 
-  const field = document.createElement("div");
-  field.className = "field";
+    const row = document.createElement("div");
 
-  const label = document.createElement("label");
-  label.htmlFor = inputId;
-  label.textContent = "Member name";
+    row.className = "member-row";
 
-  const input = document.createElement("input");
-  input.id = inputId;
-  input.name = "memberNames[]";
-  input.type = "text";
-  input.placeholder = "Enter member name";
-  input.required = true;
+    const field = document.createElement("div");
 
-  const removeButton = document.createElement("button");
-  removeButton.type = "button";
-  removeButton.className = "remove-member";
-  removeButton.textContent = "Remove";
-  removeButton.setAttribute("aria-label", "Remove this member");
+    field.className = "field";
 
-  removeButton.addEventListener("click", () => {
-    row.remove();
+    const label = document.createElement("label");
+
+    label.htmlFor = inputId;
+
+    label.textContent = "Member name";
+
+    const input = document.createElement("input");
+
+    input.id = inputId;
+
+    input.name = "memberNames[]";
+
+    input.type = "text";
+
+    input.placeholder = "Enter member name";
+
+    input.required = true;
+
+    const removeButton = document.createElement("button");
+
+    removeButton.type = "button";
+
+    removeButton.className = "remove-member";
+
+    removeButton.textContent = "Remove";
+
+    removeButton.setAttribute(
+        "aria-label",
+        "Remove this member"
+    );
+
+    removeButton.addEventListener("click", () => {
+
+        row.remove();
+
+        updateMemberCount();
+
+        addMemberButton.focus();
+
+    });
+
+    field.append(label, input);
+
+    row.append(field, removeButton);
+
+    memberList.append(row);
+
     updateMemberCount();
-    addMemberButton.focus();
-  });
 
-  field.append(label, input);
-  row.append(field, removeButton);
-  memberList.append(row);
+    input.focus();
 
-  updateMemberCount();
-  input.focus();
 });
 
 updateMemberCount();
 
-// Clear name validation messages when the user types.
-registerForm.addEventListener("input", (event) => {
-  if (event.target.matches('input[type="text"]')) {
-    event.target.setCustomValidity("");
-  }
+// ====================================
+// REGISTRATION FORM VALIDATION
+// ====================================
 
-  registerStatus.textContent = "";
-});
+const registerPassword = document.getElementById(
+    "register-password"
+);
 
-const registerPassword = document.getElementById("register-password");
-const confirmPassword = document.getElementById("confirm-password");
+const confirmPassword = document.getElementById(
+    "confirm-password"
+);
 
 function checkPasswordMatch() {
-  const mismatch =
-    confirmPassword.value !== "" &&
-    registerPassword.value !== confirmPassword.value;
 
-  confirmPassword.setCustomValidity(
-    mismatch ? "Passwords do not match." : ""
-  );
+    const mismatch =
+        confirmPassword.value !== "" &&
+        registerPassword.value !== confirmPassword.value;
+
+    confirmPassword.setCustomValidity(
+        mismatch ? "Passwords do not match." : ""
+    );
+
 }
 
-registerPassword.addEventListener("input", checkPasswordMatch);
-confirmPassword.addEventListener("input", checkPasswordMatch);
+registerPassword.addEventListener(
+    "input",
+    checkPasswordMatch
+);
 
-registerForm.addEventListener("submit", (event) => {
-  event.preventDefault();
+confirmPassword.addEventListener(
+    "input",
+    checkPasswordMatch
+);
 
-  checkPasswordMatch();
+registerForm.addEventListener("input", (event) => {
 
-  const nameInputs = registerForm.querySelectorAll('input[type="text"]');
+    if (event.target.matches('input[type="text"]')) {
+        event.target.setCustomValidity("");
+    }
 
-  nameInputs.forEach((input) => {
-    input.setCustomValidity(
-      input.value.trim() ? "" : "Please enter a valid name."
-    );
-  });
+    registerStatus.textContent = "";
 
-  if (!registerForm.reportValidity()) {
-    return;
-  }
-
-  registerStatus.textContent =
-    "Frontend details checked. Registration has not been saved. " +
-    "Email verification, capacity checks and unique Team ID generation " +
-    "will work after the backend is connected.";
 });
 
-// -----------------------------
-// TEAM ID / PASSWORD RECOVERY
-// -----------------------------
+// ====================================
+// REGISTER TEAM USING BACKEND
+// ====================================
 
-const recoveryDialog = document.getElementById("recovery-dialog");
-const recoveryTitle = document.getElementById("recovery-title");
-const recoveryDescription = document.getElementById(
-  "recovery-description"
+registerForm.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    checkPasswordMatch();
+
+    // Validate team, leader and member names
+    const nameInputs = registerForm.querySelectorAll(
+        'input[type="text"]'
+    );
+
+    nameInputs.forEach((input) => {
+
+        input.setCustomValidity(
+            input.value.trim()
+                ? ""
+                : "Please enter a valid name."
+        );
+
+    });
+
+    if (!registerForm.reportValidity()) {
+        return;
+    }
+
+    const teamName = document.getElementById(
+        "register-team-name"
+    ).value.trim();
+
+    const leaderName = document.getElementById(
+        "leader-name"
+    ).value.trim();
+
+    const leaderEmail = document.getElementById(
+        "leader-email"
+    ).value.trim().toLowerCase();
+
+    const password = registerPassword.value;
+
+    const memberNames = Array.from(
+        memberList.querySelectorAll(
+            'input[name="memberNames[]"]'
+        )
+    ).map((input) => input.value.trim());
+
+    if (
+        memberNames.length + 1 >
+        eventSettings.maxMembersPerTeam
+    ) {
+
+        registerStatus.textContent =
+            "Team member limit exceeded.";
+
+        return;
+    }
+
+    const submitButton = registerForm.querySelector(
+        'button[type="submit"]'
+    );
+
+    submitButton.disabled = true;
+
+    registerStatus.textContent =
+        "Registering team and sending OTP...";
+
+    try {
+
+        const result = await sendRequest("/register", {
+            teamName: teamName,
+            leaderName: leaderName,
+            leaderEmail: leaderEmail,
+            memberNames: memberNames,
+            password: password
+        });
+
+        pendingLeaderEmail = leaderEmail;
+
+        sessionStorage.setItem(
+            "hackarenaPendingEmail",
+            leaderEmail
+        );
+
+        registerStatus.textContent = result.message;
+
+        // Open OTP verification dialog
+        registerDialog.close();
+
+        const verifyDialog = document.getElementById(
+            "verify-dialog"
+        );
+
+        const verifyStatus = document.getElementById(
+            "verify-status"
+        );
+
+        const verifyForm = document.getElementById(
+            "verify-form"
+        );
+
+        verifyForm.reset();
+
+        verifyStatus.textContent =
+            "OTP sent to your registered email.";
+
+        verifyForm.querySelector(
+            'button[type="submit"]'
+        ).disabled = false;
+
+        verifyDialog.showModal();
+
+    } catch (error) {
+
+        registerStatus.textContent = error.message;
+
+    } finally {
+
+        submitButton.disabled = false;
+
+    }
+
+});
+
+// ====================================
+// EMAIL OTP VERIFICATION
+// ====================================
+
+const verifyDialog = document.getElementById("verify-dialog");
+
+const verifyForm = document.getElementById("verify-form");
+
+const verifyStatus = document.getElementById("verify-status");
+
+verifyForm.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    const otp = document.getElementById(
+        "verify-otp"
+    ).value.trim();
+
+    if (!pendingLeaderEmail) {
+
+        verifyStatus.textContent =
+            "Please register your team first.";
+
+        return;
+    }
+
+    if (!/^\d{6}$/.test(otp)) {
+
+        verifyStatus.textContent =
+            "Please enter a valid 6-digit OTP.";
+
+        return;
+    }
+
+    const verifyButton = verifyForm.querySelector(
+        'button[type="submit"]'
+    );
+
+    verifyButton.disabled = true;
+
+    verifyStatus.textContent = "Verifying OTP...";
+
+    let verified = false;
+
+    try {
+
+        const result = await sendRequest("/verify-email", {
+            leaderEmail: pendingLeaderEmail,
+            otp: otp
+        });
+
+        verified = true;
+
+        // Show the actual generated Team ID
+        verifyStatus.style.whiteSpace = "pre-line";
+
+        verifyStatus.textContent =
+            "Email Verified Successfully!\n\n" +
+            "Your Team ID: " + result.teamId + "\n\n" +
+            "Save your Team ID.\n" +
+            "Now login using your Team ID and Password.";
+
+        // Fill Team ID automatically on login page
+        document.getElementById("team-id").value =
+            result.teamId;
+
+        // Clear pending verification state
+        pendingLeaderEmail = "";
+
+        sessionStorage.removeItem(
+            "hackarenaPendingEmail"
+        );
+
+        // Clear registration form
+        registerForm.reset();
+
+        memberList.replaceChildren();
+
+        updateMemberCount();
+
+    } catch (error) {
+
+        verifyStatus.textContent = error.message;
+
+    } finally {
+
+        // Keep button disabled after successful verification
+        verifyButton.disabled = verified;
+
+    }
+
+});
+
+// ====================================
+// ACCOUNT RECOVERY
+// ====================================
+
+const recoveryDialog = document.getElementById(
+    "recovery-dialog"
 );
-const recoveryForm = document.getElementById("recovery-form");
-const recoveryStatus = document.getElementById("recovery-status");
+
+const recoveryTitle = document.getElementById(
+    "recovery-title"
+);
+
+const recoveryDescription = document.getElementById(
+    "recovery-description"
+);
+
+const recoveryForm = document.getElementById(
+    "recovery-form"
+);
+
+const recoveryStatus = document.getElementById(
+    "recovery-status"
+);
 
 const recoveryContent = {
-  "team-id": {
-    title: "Forgot Team ID?",
-    description:
-      "Enter your team leader's registered email. " +
-      "The connected system will verify an email OTP before " +
-      "providing your Team ID."
-  },
 
-  "team-password": {
-    title: "Reset team password",
-    description:
-      "Enter your team leader's registered email to begin " +
-      "password recovery."
-  },
+    "team-id": {
+        title: "Forgot Team ID?",
+        description:
+            "Enter your team leader's registered email."
+    },
 
-  "judge-password": {
-    title: "Reset judge password",
-    description:
-      "Enter the email associated with your invited judge account."
-  },
+    "team-password": {
+        title: "Reset team password",
+        description:
+            "Enter your registered team leader email."
+    },
 
-  "organizer-password": {
-    title: "Reset organizer password",
-    description:
-      "Enter the email associated with your authorized organizer account."
-  }
+    "judge-password": {
+        title: "Reset judge password",
+        description:
+            "Enter the email associated with your judge account."
+    },
+
+    "organizer-password": {
+        title: "Reset organizer password",
+        description:
+            "Enter the email associated with your organizer account."
+    }
+
 };
 
 document.querySelectorAll("[data-recovery]").forEach((button) => {
-  button.addEventListener("click", () => {
-    const option = recoveryContent[button.dataset.recovery];
 
-    recoveryForm.reset();
-    recoveryStatus.textContent = "";
+    button.addEventListener("click", () => {
 
-    recoveryTitle.textContent = option.title;
-    recoveryDescription.textContent = option.description;
+        const option = recoveryContent[
+            button.dataset.recovery
+        ];
 
-    recoveryDialog.showModal();
-  });
+        recoveryForm.reset();
+
+        recoveryStatus.textContent = "";
+
+        recoveryTitle.textContent = option.title;
+
+        recoveryDescription.textContent =
+            option.description;
+
+        recoveryDialog.showModal();
+
+    });
+
 });
 
 recoveryForm.addEventListener("submit", (event) => {
-  event.preventDefault();
 
-  recoveryStatus.textContent =
-    "Recovery is not connected yet. No OTP or email has been sent. " +
-    "The backend and email service will handle verification.";
+    event.preventDefault();
+
+    recoveryStatus.textContent =
+        "Account recovery is not connected yet. " +
+        "No OTP or recovery email has been sent.";
+
 });
 
-// No passwords are saved in browser storage.
-// No fake Team IDs, authentication or OTPs are generated.
+// ====================================
+// UPDATE PREVIEW MESSAGE
+// ====================================
+
+const previewLabel = document.querySelector(".preview-label");
+
+if (previewLabel) {
+
+    previewLabel.textContent =
+        "Participant registration and login connected. " +
+        "Judge and Organizer authentication coming soon.";
+
+}
