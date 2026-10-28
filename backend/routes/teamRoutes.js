@@ -576,4 +576,49 @@ router.get("/me", async (req, res) => {
 
 });
 
+// ====================================
+// ORGANIZER - REGISTERED TEAM RECORDS
+// GET /api/teams/organizer/roster
+// ====================================
+
+router.get(
+    "/organizer/roster",
+    require("../middleware/requireOrganizer"),
+    async (req, res) => {
+
+        try {
+
+            // Fetch only verified registered teams
+            const teams = await Team.find({
+                emailVerified: true
+            })
+            .select(
+                "teamId teamName leaderName leaderEmail memberNames"
+            )
+            .sort({ _id: -1 })
+            .lean();
+
+            res.json({
+                success: true,
+                totalTeams: teams.length,
+                teams: teams
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Team Roster Error:",
+                error.message
+            );
+
+            res.status(500).json({
+                success: false,
+                message: "Could not load registered teams."
+            });
+
+        }
+
+    }
+);
+
 module.exports = router;

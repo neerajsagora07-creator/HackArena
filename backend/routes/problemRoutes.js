@@ -293,5 +293,77 @@ router.put(
     }
 );
 
+ // ====================================
+ // DELETE PROBLEM STATEMENT
+ // DELETE /api/problems/:id
+ // ====================================
+
+router.delete(
+    "/:id",
+    require("../middleware/requireOrganizer"),
+    async (req, res) => {
+
+        try {
+
+            // Find Problem in MongoDB
+            const problem = await Problem.findById(
+                req.params.id
+            );
+
+            if (!problem) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Problem Statement not found."
+                });
+            }
+
+            // Do not delete Problems selected by Teams
+            if (problem.selectedTeams.length > 0) {
+                return res.status(409).json({
+                    success: false,
+                    message: "Cannot delete this Problem. Teams have already selected it."
+                });
+            }
+
+            // Delete only if no Teams have selected it
+            const deletedProblem = await Problem.findOneAndDelete({
+                _id: req.params.id,
+                "selectedTeams.0": { $exists: false }
+            });
+
+            if (!deletedProblem) {
+                return res.status(409).json({
+                    success: false,
+                    message: "Problem could not be deleted. Refresh and try again."
+                });
+            }
+
+            res.json({
+                success: true,
+                message: "Problem Statement Deleted Successfully!",
+                deletedId: deletedProblem._id.toString()
+            });
+
+        } catch (error) {
+
+            if (error.name === "CastError") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid Problem ID."
+                });
+            }
+
+            console.error("Problem Delete Error:", error.message);
+
+            res.status(500).json({
+                success: false,
+                message: "Failed to delete Problem Statement."
+            });
+
+        }
+
+    }
+);
+
 
 module.exports = router;

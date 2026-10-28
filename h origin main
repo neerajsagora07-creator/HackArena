@@ -1,0 +1,440 @@
+index.html:15: trailing whitespace.
+[32m+[m[32m<!-- EMAIL OTP VERIFICATION -->[m[41m[m
+index.html:16: trailing whitespace.
+[32m+[m[41m[m
+index.html:17: trailing whitespace.
+[32m+[m[32m<dialog id="verify-dialog" class="modal small-modal">[m[41m[m
+index.html:18: trailing whitespace.
+[32m+[m[41m[m
+index.html:19: trailing whitespace.
+[32m+[m[32m    <div class="modal-heading">[m[41m[m
+index.html:20: trailing whitespace.
+[32m+[m[41m[m
+index.html:21: trailing whitespace.
+[32m+[m[32m        <h2>Verify Team Email</h2>[m[41m[m
+index.html:22: trailing whitespace.
+[32m+[m[41m[m
+index.html:23: trailing whitespace.
+[32m+[m[32m        <button type="button"[m[41m[m
+index.html:24: trailing whitespace.
+[32m+[m[32m                class="close-button"[m[41m[m
+index.html:25: trailing whitespace.
+[32m+[m[32m                data-close="verify-dialog">[m[41m[m
+index.html:26: trailing whitespace.
+[32m+[m[32m            ×[m[41m[m
+index.html:27: trailing whitespace.
+[32m+[m[32m        </button>[m[41m[m
+index.html:28: trailing whitespace.
+[32m+[m[41m[m
+index.html:29: trailing whitespace.
+[32m+[m[32m    </div>[m[41m[m
+index.html:30: trailing whitespace.
+[32m+[m[41m[m
+index.html:31: trailing whitespace.
+[32m+[m[32m    <p class="modal-description">[m[41m[m
+index.html:32: trailing whitespace.
+[32m+[m[32m        Enter the 6-digit OTP sent to your Team Leader Email.[m[41m[m
+index.html:33: trailing whitespace.
+[32m+[m[32m    </p>[m[41m[m
+index.html:34: trailing whitespace.
+[32m+[m[41m[m
+index.html:35: trailing whitespace.
+[32m+[m[32m    <form id="verify-form">[m[41m[m
+index.html:36: trailing whitespace.
+[32m+[m[41m[m
+index.html:37: trailing whitespace.
+[32m+[m[32m        <div class="field">[m[41m[m
+index.html:38: trailing whitespace.
+[32m+[m[41m[m
+index.html:39: trailing whitespace.
+[32m+[m[32m            <label for="verify-otp">[m[41m[m
+index.html:40: trailing whitespace.
+[32m+[m[32m                Enter OTP[m[41m[m
+index.html:41: trailing whitespace.
+[32m+[m[32m            </label>[m[41m[m
+index.html:42: trailing whitespace.
+[32m+[m[41m[m
+index.html:43: trailing whitespace.
+[32m+[m[32m            <input[m[41m[m
+index.html:44: trailing whitespace.
+[32m+[m[32m                type="text"[m[41m[m
+index.html:45: trailing whitespace.
+[32m+[m[32m                id="verify-otp"[m[41m[m
+index.html:46: trailing whitespace.
+[32m+[m[32m                placeholder="Enter 6-digit OTP"[m[41m[m
+index.html:47: trailing whitespace.
+[32m+[m[32m                inputmode="numeric"[m[41m[m
+index.html:48: trailing whitespace.
+[32m+[m[32m                pattern="[0-9]{6}"[m[41m[m
+index.html:49: trailing whitespace.
+[32m+[m[32m                maxlength="6"[m[41m[m
+index.html:50: trailing whitespace.
+[32m+[m[32m                autocomplete="one-time-code"[m[41m[m
+index.html:51: trailing whitespace.
+[32m+[m[32m                required[m[41m[m
+index.html:52: trailing whitespace.
+[32m+[m[32m            >[m[41m[m
+index.html:53: trailing whitespace.
+[32m+[m[41m[m
+index.html:54: trailing whitespace.
+[32m+[m[32m        </div>[m[41m[m
+index.html:55: trailing whitespace.
+[32m+[m[41m[m
+index.html:56: trailing whitespace.
+[32m+[m[32m        <button type="submit" class="login-button">[m[41m[m
+index.html:57: trailing whitespace.
+[32m+[m[32m            Verify Email[m[41m[m
+index.html:58: trailing whitespace.
+[32m+[m[32m        </button>[m[41m[m
+index.html:59: trailing whitespace.
+[32m+[m[41m[m
+index.html:60: trailing whitespace.
+[32m+[m[32m        <p id="verify-status"[m[41m[m
+index.html:61: trailing whitespace.
+[32m+[m[32m           class="status-message"[m[41m[m
+index.html:62: trailing whitespace.
+[32m+[m[32m           role="status"[m[41m[m
+index.html:63: trailing whitespace.
+[32m+[m[32m           aria-live="polite">[m[41m[m
+index.html:64: trailing whitespace.
+[32m+[m[32m        </p>[m[41m[m
+index.html:65: trailing whitespace.
+[32m+[m[41m[m
+index.html:66: trailing whitespace.
+[32m+[m[32m    </form>[m[41m[m
+index.html:67: trailing whitespace.
+[32m+[m[41m[m
+index.html:68: trailing whitespace.
+[32m+[m[32m</dialog>[m[41m[m
+index.html:69: trailing whitespace.
+[32m+[m[41m[m
+index.html:70: trailing whitespace.
+[32m+[m[41m[m
+participant.js:3: trailing whitespace.
+[32m+[m[32m// Keep dashboard hidden until login is verified[m[41m[m
+participant.js:4: trailing whitespace.
+[32m+[m[32mdocument.documentElement.style.visibility = "hidden";[m[41m[m
+participant.js:536: trailing whitespace.
+[32m+[m[41m[m
+participant.js:537: trailing whitespace.
+[32m+[m[32m // ---------------------------------[m[41m[m
+participant.js:538: trailing whitespace.
+[32m+[m[32m // LOGOUT[m[41m[m
+participant.js:539: trailing whitespace.
+[32m+[m[32m // ---------------------------------[m[41m[m
+participant.js:542: trailing whitespace.
+[32m+[m[32m    document.getElementById("logout-button");[m[41m[m
+participant.js:543: trailing whitespace.
+[32m+[m[41m[m
+participant.js:544: trailing whitespace.
+[32m+[m[32mfunction logoutParticipant() {[m[41m[m
+participant.js:545: trailing whitespace.
+[32m+[m[41m[m
+participant.js:546: trailing whitespace.
+[32m+[m[32m    // Clear browser login session[m[41m[m
+participant.js:547: trailing whitespace.
+[32m+[m[32m    sessionStorage.removeItem("hackarenaTeamToken");[m[41m[m
+participant.js:548: trailing whitespace.
+[32m+[m[32m    sessionStorage.removeItem("hackarenaTeam");[m[41m[m
+participant.js:550: trailing whitespace.
+[32m+[m[32m    // Return to Login Page[m[41m[m
+participant.js:551: trailing whitespace.
+[32m+[m[32m    window.location.replace("./index.html");[m[41m[m
+participant.js:552: trailing whitespace.
+[32m+[m[32m}[m[41m[m
+participant.js:556: trailing whitespace.
+[32m+[m[32m    logoutParticipant();[m[41m[m
+participant.js:560: trailing whitespace.
+[32m+[m[41m[m
+participant.js:579: trailing whitespace.
+[32m+[m[41m[m
+participant.js:580: trailing whitespace.
+[32m+[m[32m // ====================================[m[41m[m
+participant.js:581: trailing whitespace.
+[32m+[m[32m // VERIFY LOGIN AND LOAD TEAM[m[41m[m
+participant.js:582: trailing whitespace.
+[32m+[m[32m // ====================================[m[41m[m
+participant.js:583: trailing whitespace.
+[32m+[m[41m[m
+participant.js:584: trailing whitespace.
+[32m+[m[32masync function loadAuthenticatedTeam() {[m[41m[m
+participant.js:585: trailing whitespace.
+[32m+[m[41m[m
+participant.js:586: trailing whitespace.
+[32m+[m[32m    const token = sessionStorage.getItem([m[41m[m
+participant.js:587: trailing whitespace.
+[32m+[m[32m        "hackarenaTeamToken"[m[41m[m
+participant.js:588: trailing whitespace.
+[32m+[m[32m    );[m[41m[m
+participant.js:589: trailing whitespace.
+[32m+[m[41m[m
+participant.js:590: trailing whitespace.
+[32m+[m[32m    // No login token[m[41m[m
+participant.js:591: trailing whitespace.
+[32m+[m[32m    if (!token) {[m[41m[m
+participant.js:592: trailing whitespace.
+[32m+[m[32m        logoutParticipant();[m[41m[m
+participant.js:593: trailing whitespace.
+[32m+[m[32m        return;[m[41m[m
+participant.js:594: trailing whitespace.
+[32m+[m[32m    }[m[41m[m
+participant.js:595: trailing whitespace.
+[32m+[m[41m[m
+participant.js:596: trailing whitespace.
+[32m+[m[32m    try {[m[41m[m
+participant.js:597: trailing whitespace.
+[32m+[m[41m[m
+participant.js:598: trailing whitespace.
+[32m+[m[32m        const response = await fetch([m[41m[m
+participant.js:599: trailing whitespace.
+[32m+[m[32m            "http://127.0.0.1:5000/api/teams/me",[m[41m[m
+participant.js:600: trailing whitespace.
+[32m+[m[32m            {[m[41m[m
+participant.js:601: trailing whitespace.
+[32m+[m[32m                method: "GET",[m[41m[m
+participant.js:602: trailing whitespace.
+[32m+[m[32m                headers: {[m[41m[m
+participant.js:603: trailing whitespace.
+[32m+[m[32m                    Authorization: "Bearer " + token[m[41m[m
+participant.js:604: trailing whitespace.
+[32m+[m[32m                },[m[41m[m
+participant.js:605: trailing whitespace.
+[32m+[m[32m                cache: "no-store"[m[41m[m
+participant.js:606: trailing whitespace.
+[32m+[m[32m            }[m[41m[m
+participant.js:607: trailing whitespace.
+[32m+[m[32m        );[m[41m[m
+participant.js:608: trailing whitespace.
+[32m+[m[41m[m
+participant.js:609: trailing whitespace.
+[32m+[m[32m        const result = await response.json();[m[41m[m
+participant.js:610: trailing whitespace.
+[32m+[m[41m[m
+participant.js:611: trailing whitespace.
+[32m+[m[32m        if ([m[41m[m
+participant.js:612: trailing whitespace.
+[32m+[m[32m            !response.ok ||[m[41m[m
+participant.js:613: trailing whitespace.
+[32m+[m[32m            !result.success ||[m[41m[m
+participant.js:614: trailing whitespace.
+[32m+[m[32m            !result.team[m[41m[m
+participant.js:615: trailing whitespace.
+[32m+[m[32m        ) {[m[41m[m
+participant.js:616: trailing whitespace.
+[32m+[m[32m            throw new Error([m[41m[m
+participant.js:617: trailing whitespace.
+[32m+[m[32m                result.message || "Invalid session."[m[41m[m
+participant.js:618: trailing whitespace.
+[32m+[m[32m            );[m[41m[m
+participant.js:619: trailing whitespace.
+[32m+[m[32m        }[m[41m[m
+participant.js:620: trailing whitespace.
+[32m+[m[41m[m
+participant.js:621: trailing whitespace.
+[32m+[m[32m        const team = result.team;[m[41m[m
+participant.js:622: trailing whitespace.
+[32m+[m[41m[m
+participant.js:623: trailing whitespace.
+[32m+[m[32m        // Real team details from MongoDB[m[41m[m
+participant.js:624: trailing whitespace.
+[32m+[m[32m        participantState.team = {[m[41m[m
+participant.js:625: trailing whitespace.
+[32m+[m[32m            name: team.teamName,[m[41m[m
+participant.js:626: trailing whitespace.
+[32m+[m[32m            teamId: team.teamId,[m[41m[m
+participant.js:627: trailing whitespace.
+[32m+[m[32m            leaderName: team.leaderName,[m[41m[m
+participant.js:628: trailing whitespace.
+[32m+[m[32m            leaderEmail: team.leaderEmail,[m[41m[m
+participant.js:629: trailing whitespace.
+[32m+[m[32m            memberLimit: null,[m[41m[m
+participant.js:630: trailing whitespace.
+[32m+[m[32m            members: team.memberNames || [][m[41m[m
+participant.js:631: trailing whitespace.
+[32m+[m[32m        };[m[41m[m
+participant.js:632: trailing whitespace.
+[32m+[m[41m[m
+participant.js:633: trailing whitespace.
+[32m+[m[32m        // Registration verified by backend[m[41m[m
+participant.js:634: trailing whitespace.
+[32m+[m[32m        participantState.achievements.registration = true;[m[41m[m
+participant.js:635: trailing whitespace.
+[32m+[m[41m[m
+participant.js:636: trailing whitespace.
+[32m+[m[32m        // ====================================[m[41m[m
+participant.js:637: trailing whitespace.
+[32m+[m[32m        // LOAD REAL EVENT SETTINGS[m[41m[m
+participant.js:638: trailing whitespace.
+[32m+[m[32m        // ====================================[m[41m[m
+participant.js:639: trailing whitespace.
+[32m+[m[41m[m
+participant.js:640: trailing whitespace.
+[32m+[m[32m        try {[m[41m[m
+participant.js:641: trailing whitespace.
+[32m+[m[41m[m
+participant.js:642: trailing whitespace.
+[32m+[m[32m            const eventResponse = await fetch([m[41m[m
+participant.js:643: trailing whitespace.
+[32m+[m[32m                "http://127.0.0.1:5000/api/event",[m[41m[m
+participant.js:644: trailing whitespace.
+[32m+[m[32m                {[m[41m[m
+participant.js:645: trailing whitespace.
+[32m+[m[32m                    method: "GET",[m[41m[m
+participant.js:646: trailing whitespace.
+[32m+[m[32m                    cache: "no-store"[m[41m[m
+participant.js:647: trailing whitespace.
+[32m+[m[32m                }[m[41m[m
+participant.js:648: trailing whitespace.
+[32m+[m[32m            );[m[41m[m
+participant.js:649: trailing whitespace.
+[32m+[m[41m[m
+participant.js:650: trailing whitespace.
+[32m+[m[32m            if (!eventResponse.ok) {[m[41m[m
+participant.js:651: trailing whitespace.
+[32m+[m[32m                throw new Error("Event settings unavailable.");[m[41m[m
+participant.js:652: trailing whitespace.
+[32m+[m[32m            }[m[41m[m
+participant.js:653: trailing whitespace.
+[32m+[m[41m[m
+participant.js:654: trailing whitespace.
+[32m+[m[32m            const eventResult = await eventResponse.json();[m[41m[m
+participant.js:655: trailing whitespace.
+[32m+[m[41m[m
+participant.js:656: trailing whitespace.
+[32m+[m[32m            if (eventResult.success && eventResult.event) {[m[41m[m
+participant.js:657: trailing whitespace.
+[32m+[m[41m[m
+participant.js:658: trailing whitespace.
+[32m+[m[32m                const eventData = eventResult.event;[m[41m[m
+participant.js:659: trailing whitespace.
+[32m+[m[41m[m
+participant.js:660: trailing whitespace.
+[32m+[m[32m                // Maximum Teams from Organizer[m[41m[m
+participant.js:661: trailing whitespace.
+[32m+[m[32m                if ([m[41m[m
+participant.js:662: trailing whitespace.
+[32m+[m[32m                    Number.isInteger(eventData.maximumTeams) &&[m[41m[m
+participant.js:663: trailing whitespace.
+[32m+[m[32m                    eventData.maximumTeams > 0[m[41m[m
+participant.js:664: trailing whitespace.
+[32m+[m[32m                ) {[m[41m[m
+participant.js:665: trailing whitespace.
+[32m+[m[32m                    participantState.teamCapacity =[m[41m[m
+participant.js:666: trailing whitespace.
+[32m+[m[32m                        eventData.maximumTeams;[m[41m[m
+participant.js:667: trailing whitespace.
+[32m+[m[32m                }[m[41m[m
+participant.js:668: trailing whitespace.
+[32m+[m[41m[m
+participant.js:669: trailing whitespace.
+[32m+[m[32m                // Maximum Members from Organizer[m[41m[m
+participant.js:670: trailing whitespace.
+[32m+[m[32m                if ([m[41m[m
+participant.js:671: trailing whitespace.
+[32m+[m[32m                    Number.isInteger(eventData.maximumMembers) &&[m[41m[m
+participant.js:672: trailing whitespace.
+[32m+[m[32m                    eventData.maximumMembers > 0[m[41m[m
+participant.js:673: trailing whitespace.
+[32m+[m[32m                ) {[m[41m[m
+participant.js:674: trailing whitespace.
+[32m+[m[32m                    participantState.team.memberLimit =[m[41m[m
+participant.js:675: trailing whitespace.
+[32m+[m[32m                        eventData.maximumMembers;[m[41m[m
+participant.js:676: trailing whitespace.
+[32m+[m[32m                }[m[41m[m
+participant.js:677: trailing whitespace.
+[32m+[m[41m[m
+participant.js:678: trailing whitespace.
+[32m+[m[32m                console.log([m[41m[m
+participant.js:679: trailing whitespace.
+[32m+[m[32m                    "Event settings loaded from MongoDB."[m[41m[m
+participant.js:680: trailing whitespace.
+[32m+[m[32m                );[m[41m[m
+participant.js:681: trailing whitespace.
+[32m+[m[41m[m
+participant.js:682: trailing whitespace.
+[32m+[m[32m            }[m[41m[m
+participant.js:683: trailing whitespace.
+[32m+[m[41m[m
+participant.js:684: trailing whitespace.
+[32m+[m[32m        } catch (error) {[m[41m[m
+participant.js:685: trailing whitespace.
+[32m+[m[41m[m
+participant.js:686: trailing whitespace.
+[32m+[m[32m            console.warn([m[41m[m
+participant.js:687: trailing whitespace.
+[32m+[m[32m                "Could not load event settings:",[m[41m[m
+participant.js:688: trailing whitespace.
+[32m+[m[32m                error.message[m[41m[m
+participant.js:689: trailing whitespace.
+[32m+[m[32m            );[m[41m[m
+participant.js:690: trailing whitespace.
+[32m+[m[41m[m
+participant.js:691: trailing whitespace.
+[32m+[m[32m        }[m[41m[m
+participant.js:692: trailing whitespace.
+[32m+[m[41m[m
+participant.js:693: trailing whitespace.
+[32m+[m[32m        // Render existing dashboard[m[41m[m
+participant.js:694: trailing whitespace.
+[32m+[m[41m        [m
+participant.js:695: trailing whitespace.
+[32m+[m[32m        initializeDashboard();[m[41m[m
+participant.js:696: trailing whitespace.
+[32m+[m[41m[m
+participant.js:697: trailing whitespace.
+[32m+[m[32m        const banner = document.getElementById([m[41m[m
+participant.js:698: trailing whitespace.
+[32m+[m[32m            "preview-banner"[m[41m[m
+participant.js:699: trailing whitespace.
+[32m+[m[32m        );[m[41m[m
+participant.js:700: trailing whitespace.
+[32m+[m[41m[m
+participant.js:701: trailing whitespace.
+[32m+[m[32m        if (banner) {[m[41m[m
+participant.js:702: trailing whitespace.
+[32m+[m[32m            banner.textContent =[m[41m[m
+participant.js:703: trailing whitespace.
+[32m+[m[32m                "Team login verified successfully. " +[m[41m[m
+participant.js:704: trailing whitespace.
+[32m+[m[32m                "Other dashboard features are being connected.";[m[41m[m
+participant.js:705: trailing whitespace.
+[32m+[m[32m        }[m[41m[m
+participant.js:706: trailing whitespace.
+[32m+[m[41m[m
+participant.js:707: trailing whitespace.
+[32m+[m[32m        // Show dashboard after authentication[m[41m[m
+participant.js:708: trailing whitespace.
+[32m+[m[32m        document.documentElement.style.visibility =[m[41m[m
+participant.js:709: trailing whitespace.
+[32m+[m[32m            "visible";[m[41m[m
+participant.js:710: trailing whitespace.
+[32m+[m[41m[m
+participant.js:711: trailing whitespace.
+[32m+[m[32m    } catch (error) {[m[41m[m
+participant.js:712: trailing whitespace.
+[32m+[m[41m[m
+participant.js:713: trailing whitespace.
+[32m+[m[32m        console.error([m[41m[m
+participant.js:714: trailing whitespace.
+[32m+[m[32m            "Participant Authentication:",[m[41m[m
+participant.js:715: trailing whitespace.
+[32m+[m[32m            error.message[m[41m[m
+participant.js:716: trailing whitespace.
+[32m+[m[32m        );[m[41m[m
+participant.js:717: trailing whitespace.
+[32m+[m[41m[m
+participant.js:718: trailing whitespace.
+[32m+[m[32m        logoutParticipant();[m[41m[m
+participant.js:719: trailing whitespace.
+[32m+[m[41m[m
+participant.js:720: trailing whitespace.
+[32m+[m[32m    }[m[41m[m
+participant.js:721: trailing whitespace.
+[32m+[m[32m}[m[41m[m
+participant.js:722: trailing whitespace.
+[32m+[m[41m[m
+participant.js:723: trailing whitespace.
+[32m+[m[32mloadAuthenticatedTeam();[m[41m[m
+participant.js:724: trailing whitespace.
+[32m+[m[41m[m

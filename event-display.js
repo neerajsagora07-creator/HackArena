@@ -4,7 +4,6 @@
 // ==========================================
 // HACKARENA - EVENT BRANDING DISPLAY
 // Login, Participant and Judge Dashboards
-// Event information comes from MongoDB API
 // ==========================================
 
 (function () {
@@ -14,9 +13,9 @@
   const storageKey =
     "hackarena-current-event-branding-v1";
 
-  // ------------------------------------------
-  // LOAD EVENT FROM MONGODB
-  // ------------------------------------------
+  // ==========================================
+  // LOAD EVENT INFORMATION
+  // ==========================================
 
   async function loadEventInformation() {
 
@@ -26,8 +25,7 @@
 
       const response = await fetch(eventApiUrl, {
         method: "GET",
-        cache: "no-store",
-        signal: AbortSignal.timeout(10000)
+        cache: "no-store"
       });
 
       if (!response.ok) {
@@ -44,65 +42,64 @@
 
       console.log("HackArena event loaded from MongoDB.");
 
-      // Save local copy as a fallback
       try {
         localStorage.setItem(
           storageKey,
           JSON.stringify(eventData)
         );
-      } catch (storageError) {
-        console.warn("Event cache could not be updated.");
+      } catch (error) {
+        console.warn("Could not update event cache.");
       }
 
     } catch (error) {
 
-      console.warn(
-        "MongoDB API unavailable. Checking local cache.",
-        error
-      );
+      console.warn("Event API unavailable:", error);
 
       try {
         eventData = JSON.parse(
           localStorage.getItem(storageKey) || "null"
         );
-      } catch (storageError) {
+      } catch (error) {
         eventData = null;
       }
-
     }
 
     if (!eventData || !eventData.eventName) {
-      console.log("No HackArena event information available.");
+      console.warn("No event information available.");
       return;
     }
 
     displayEventInformation(eventData);
   }
 
-  // ------------------------------------------
+  // ==========================================
   // DISPLAY EVENT INFORMATION
-  // ------------------------------------------
+  // ==========================================
 
   function displayEventInformation(eventData) {
 
-    // Avoid duplicate branding boxes
+    // Remove old event card to avoid duplicates
     document.querySelectorAll(".hackarena-event-info")
       .forEach((element) => element.remove());
 
-    // ADD STYLING WITHOUT CHANGING EXISTING CSS
+    // ==========================================
+    // EVENT CARD CSS
+    // ==========================================
 
     if (!document.getElementById("hackarena-event-style")) {
 
       const style = document.createElement("style");
+
       style.id = "hackarena-event-style";
 
       style.textContent = `
         .hackarena-event-info {
+          width: 100%;
           display: flex;
           align-items: center;
           gap: 18px;
           padding: 20px;
-          margin: 20px 0 25px;
+          margin: 15px 0 25px;
           border-radius: 14px;
           background: #d5d5c9;
           border-left: 4px solid #ff7b3c;
@@ -118,6 +115,7 @@
 
         .hackarena-event-details {
           min-width: 0;
+          overflow-wrap: anywhere;
         }
 
         .hackarena-event-name {
@@ -165,17 +163,18 @@
       document.head.appendChild(style);
     }
 
-    // CREATE EVENT INFORMATION BOX
+    // ==========================================
+    // CREATE EVENT CARD
+    // ==========================================
 
     const eventBox = document.createElement("section");
+
     eventBox.className = "hackarena-event-info";
 
     // ORGANIZER LOGO
-
     if (
       typeof eventData.logo === "string" &&
-      /^data:image\/(png|jpeg|webp);base64,/i
-        .test(eventData.logo)
+      /^data:image\/(png|jpeg|webp);base64,/i.test(eventData.logo)
     ) {
 
       const logo = document.createElement("img");
@@ -188,10 +187,10 @@
     }
 
     const details = document.createElement("div");
+
     details.className = "hackarena-event-details";
 
     // EVENT NAME
-
     const eventName = document.createElement("h2");
 
     eventName.className = "hackarena-event-name";
@@ -199,14 +198,12 @@
 
     details.appendChild(eventName);
 
-    // ORGANIZATION NAME
-
+    // ORGANIZATION
     if (eventData.organization) {
 
       const organization = document.createElement("p");
 
-      organization.className =
-        "hackarena-event-organizer";
+      organization.className = "hackarena-event-organizer";
 
       organization.textContent =
         "Organized by " + eventData.organization;
@@ -214,22 +211,24 @@
       details.appendChild(organization);
     }
 
-    // CHECK LOGIN PAGE
+    // ==========================================
+    // CHECK IF LOGIN PAGE
+    // ==========================================
 
     const isLoginPage =
       document.querySelector(".login-grid") !== null ||
       window.location.pathname.toLowerCase()
         .endsWith("/index.html");
 
-    // FULL EVENT DETAILS ON LOGIN PAGE
+    // ==========================================
+    // DISPLAY MORE DETAILS ON LOGIN PAGE
+    // ==========================================
 
     if (isLoginPage) {
 
       function addDetail(label, value) {
 
-        if (!value) {
-          return;
-        }
+        if (!value) return;
 
         const paragraph = document.createElement("p");
 
@@ -278,25 +277,48 @@
 
     eventBox.appendChild(details);
 
-    // ------------------------------------------
-    // POSITION BRANDING ON THE PAGE
-    // ------------------------------------------
+    // ==========================================
+    // POSITION EVENT CARD
+    // ==========================================
 
     if (isLoginPage) {
 
-      const intro = document.querySelector(".intro");
-      const loginGrid = document.querySelector(".login-grid");
+      // NEW LOGIN PAGE - LEFT SIDE
+      const leftPanel =
+        document.querySelector(".brand-panel");
 
-      if (intro) {
-        intro.after(eventBox);
-      } else if (loginGrid) {
-        loginGrid.before(eventBox);
+      if (leftPanel) {
+
+        const codingVisual =
+          leftPanel.querySelector(".hero-visual");
+
+        // Insert above coding illustration
+        if (codingVisual) {
+          codingVisual.before(eventBox);
+        } else {
+          leftPanel.appendChild(eventBox);
+        }
+
+        console.log("Event card added to LEFT panel.");
+
       } else {
-        document.querySelector("main")?.prepend(eventBox);
+
+        // OLD LOGIN PAGE FALLBACK
+        const intro = document.querySelector(".intro");
+        const loginGrid = document.querySelector(".login-grid");
+
+        if (intro) {
+          intro.after(eventBox);
+        } else if (loginGrid) {
+          loginGrid.before(eventBox);
+        } else {
+          document.querySelector("main")?.prepend(eventBox);
+        }
       }
 
     } else {
 
+      // PARTICIPANT AND JUDGE DASHBOARDS
       const topbar = document.querySelector(".topbar");
 
       if (topbar) {
@@ -306,10 +328,10 @@
       }
     }
 
+    console.log("HackArena event information displayed.");
   }
 
   // START EVENT LOADING
-
   loadEventInformation();
 
 })();

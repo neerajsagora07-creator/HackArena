@@ -8,7 +8,7 @@
 const API_URL = "http://127.0.0.1:5000/api/teams";
 
 const eventSettings = {
-    maxMembersPerTeam: 4
+    maxMembersPerTeam: 6
 };
 
 // Team email for OTP verification
@@ -381,6 +381,18 @@ function updateMemberCount() {
     addMemberButton.disabled =
         totalMembers >= eventSettings.maxMembersPerTeam;
 
+    // Update member numbering automatically
+    Array.from(memberList.children).forEach((row, index) => {
+
+        const label = row.querySelector("label");
+
+        if (label) {
+            label.textContent = "Member " + (index + 2) + " Name";
+        }
+
+    });
+
+
 }
 
 addMemberButton.addEventListener("click", () => {
@@ -407,7 +419,7 @@ addMemberButton.addEventListener("click", () => {
 
     label.htmlFor = inputId;
 
-    label.textContent = "Member name";
+    label.textContent = "Member name";label.textContent = "Member " + (totalMembers + 1) + " Name";
 
     const input = document.createElement("input");
 
@@ -819,3 +831,143 @@ if (previewLabel) {
         "Judge and Organizer authentication coming soon.";
 
 }
+
+// ====================================
+// LOGIN ROLE TAB SWITCHING
+// ====================================
+
+const loginRoleTabs = Array.from(
+    document.querySelectorAll("[data-login-tab]")
+);
+
+const loginRolePanels = Array.from(
+    document.querySelectorAll("[data-login-panel]")
+);
+
+function activateLoginRole(role) {
+
+    loginRoleTabs.forEach((tab) => {
+        const selected = tab.dataset.loginTab === role;
+
+        tab.setAttribute(
+            "aria-selected",
+            String(selected)
+        );
+
+        tab.tabIndex = selected ? 0 : -1;
+    });
+
+    loginRolePanels.forEach((panel) => {
+        panel.hidden = panel.dataset.loginPanel !== role;
+    });
+}
+
+loginRoleTabs.forEach((tab, index) => {
+
+    tab.addEventListener("click", () => {
+        activateLoginRole(tab.dataset.loginTab);
+    });
+
+    // Keyboard navigation for login tabs
+    tab.addEventListener("keydown", (event) => {
+
+        let nextIndex = index;
+
+        if (event.key === "ArrowRight") {
+            nextIndex = (index + 1) % loginRoleTabs.length;
+        } else if (event.key === "ArrowLeft") {
+            nextIndex =
+                (index - 1 + loginRoleTabs.length) %
+                loginRoleTabs.length;
+        } else if (event.key === "Home") {
+            nextIndex = 0;
+        } else if (event.key === "End") {
+            nextIndex = loginRoleTabs.length - 1;
+        } else {
+            return;
+        }
+
+        event.preventDefault();
+
+        const nextTab = loginRoleTabs[nextIndex];
+
+        activateLoginRole(nextTab.dataset.loginTab);
+        nextTab.focus();
+    });
+});
+
+// Default: Participant Login
+activateLoginRole("Participant");
+
+// Update outdated preview message, if present
+const loginPreviewLabel = document.querySelector(".preview-label");
+
+if (loginPreviewLabel) {
+    loginPreviewLabel.textContent =
+        "Participant and Organizer Login Connected. Judge Login Coming Soon.";
+}
+
+// ====================================
+// TEAM MEMBERS LIVE PREVIEW
+// ====================================
+
+function updateTeamMembersPreview() {
+
+    const previewList =
+        document.getElementById("team-preview-list");
+
+    if (!previewList) return;
+
+    previewList.replaceChildren();
+
+    // Team Leader
+    const leaderName =
+        document.getElementById("leader-name").value.trim();
+
+    const leaderItem = document.createElement("li");
+
+    leaderItem.textContent =
+        (leaderName || "Enter leader name") + " (Team Leader)";
+
+    previewList.appendChild(leaderItem);
+
+    // Other Team Members
+    const members = document.querySelectorAll(
+        '#member-list input[name="memberNames[]"]'
+    );
+
+    members.forEach((input, index) => {
+
+        const item = document.createElement("li");
+
+        item.textContent =
+            input.value.trim() ||
+            "Enter Member " + (index + 2) + " Name";
+
+        previewList.appendChild(item);
+    });
+}
+
+// Update when names are typed
+document.getElementById("leader-name")
+    .addEventListener("input", updateTeamMembersPreview);
+
+document.getElementById("member-list")
+    .addEventListener("input", updateTeamMembersPreview);
+
+// Update when member is added
+document.getElementById("add-member")
+    .addEventListener("click", updateTeamMembersPreview);
+
+// Update when member is removed
+document.getElementById("member-list")
+    .addEventListener("click", (event) => {
+
+        if (event.target.closest(".remove-member")) {
+            updateTeamMembersPreview();
+        }
+
+    });
+
+updateTeamMembersPreview();
+

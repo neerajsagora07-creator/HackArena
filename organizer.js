@@ -479,44 +479,140 @@ loadSavedEventInformation();
 // TEAM MANAGEMENT
 // ---------------------------------
 
+
 function renderTeams() {
 
-  const list =
-    document.getElementById("teams-list");
+    const list = document.getElementById("teams-list");
+    const empty = document.getElementById("teams-empty");
 
-  const empty =
-    document.getElementById("teams-empty");
+    list.replaceChildren();
 
-  list.replaceChildren();
+    empty.hidden = organizerData.teams.length > 0;
 
-  empty.hidden =
-    organizerData.teams.length > 0;
+    organizerData.teams.forEach((team) => {
 
-  organizerData.teams.forEach((team) => {
+        const row = document.createElement("tr");
 
-    const row = document.createElement("tr");
+        function addCell(value) {
 
-    const values = [
-      team.teamId,
-      team.name,
-      team.leaderEmail,
-      team.memberCount,
-      team.selectedProblem
-    ];
+            const cell = document.createElement("td");
 
-    values.forEach((value) => {
+            cell.textContent = value || "—";
 
-      const cell = document.createElement("td");
+            row.appendChild(cell);
+        }
 
-      cell.textContent =
-        String(value ?? "—");
+        // Team details
+        addCell(team.teamId);
+        addCell(team.teamName);
+        addCell(team.leaderEmail);
 
-      row.append(cell);
+        // Full team roster
+        const memberCell = document.createElement("td");
+
+        const allMembers = [
+            team.leaderName,
+            ...(Array.isArray(team.memberNames)
+                ? team.memberNames
+                : [])
+        ].filter(name => typeof name === "string" && name.trim());
+
+        const details = document.createElement("details");
+
+        const summary = document.createElement("summary");
+
+        summary.textContent = allMembers.length + " Members";
+
+        const memberList = document.createElement("ol");
+
+        allMembers.forEach((name, index) => {
+
+            const item = document.createElement("li");
+
+            item.textContent =
+                name + (index === 0 ? " (Team Leader)" : "");
+
+            memberList.appendChild(item);
+
+        });
+
+        details.append(summary, memberList);
+
+        memberCell.appendChild(details);
+
+        row.appendChild(memberCell);
+
+        // Problem selection will be connected later
+        addCell(team.selectedProblem || "Not selected");
+
+        list.appendChild(row);
+
     });
 
-    list.append(row);
-  });
 }
+
+// ====================================
+// LOAD REGISTERED TEAMS FROM MONGODB
+// ====================================
+
+async function loadTeams() {
+
+    try {
+
+        const token = sessionStorage.getItem(
+            "hackarenaOrganizerToken"
+        );
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/teams/organizer/roster",
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (
+            !response.ok ||
+            !result.success ||
+            !Array.isArray(result.teams)
+        ) {
+            throw new Error(
+                result.message || "Could not load teams."
+            );
+        }
+
+        organizerData.teams = result.teams;
+
+        renderTeams();
+
+        console.log(
+            "Registered Teams Loaded:",
+            result.totalTeams
+        );
+
+    } catch (error) {
+
+        console.error("Team Loading Error:", error);
+
+        const empty = document.getElementById("teams-empty");
+
+        empty.hidden = false;
+
+        empty.querySelector("h3").textContent =
+            "Could Not Load Teams";
+
+        empty.querySelector("p").textContent =
+            "Check backend connection and Organizer login.";
+
+    }
+
+}
+
 
 // ---------------------------------
 // PROBLEM STATEMENTS
@@ -1540,7 +1636,7 @@ function initializeOrganizer() {
 
   showPage("overview");
 
-  renderTeams();
+loadTeams();
   renderProblems();
   loadProblems();
   renderJudges();
