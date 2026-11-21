@@ -1,23 +1,23 @@
 
 const express = require("express");
 const Problem = require("../models/Problem");
+const requireOrganizer = require("../middleware/requireOrganizer");
 
 const router = express.Router();
 
 // ====================================
 // GET ALL PUBLISHED PROBLEMS
+// GET /api/problems
+// Participants can see published problems only
 // ====================================
 
 router.get("/", async (req, res) => {
-
     try {
-
         const problems = await Problem.find({
             isPublished: true
         }).sort({ code: 1 });
 
         const problemList = problems.map((problem) => {
-
             const occupied = problem.selectedTeams.length;
 
             return {
@@ -35,7 +35,6 @@ router.get("/", async (req, res) => {
                     ? "Full"
                     : "Available"
             };
-
         });
 
         res.json({
@@ -44,37 +43,90 @@ router.get("/", async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error(
-            "Problem Fetch Error:",
-            error.message
-        );
+        console.error("Problem Fetch Error:", error.message);
 
         res.status(500).json({
             success: false,
             message: "Failed to load problems."
         });
-
     }
-
 });
 
- // ====================================
- // CREATE PROBLEM STATEMENT
- // POST /api/problems
- // Only Organizer can create problems
- // ====================================
+
+// ====================================
+// GET ALL PROBLEMS FOR ORGANIZER
+// GET /api/problems/organizer/all
+// Includes Draft and Published
+// ====================================
+
+router.get(
+    "/organizer/all",
+    requireOrganizer,
+    async (req, res) => {
+        try {
+            const problems = await Problem.find()
+                .sort({ createdAt: -1 });
+
+            const problemList = problems.map((problem) => {
+                const occupied = problem.selectedTeams.length;
+
+                return {
+                    id: problem._id,
+                    code: problem.code,
+                    title: problem.title,
+                    statement: problem.statement,
+                    capacity: problem.capacity,
+                    occupied: occupied,
+                    availableSlots: Math.max(
+                        0,
+                        problem.capacity - occupied
+                    ),
+                    status: occupied >= problem.capacity
+                        ? "Full"
+                        : "Available",
+                    isPublished: problem.isPublished
+                };
+            });
+
+            res.json({
+                success: true,
+                problems: problemList
+            });
+
+        } catch (error) {
+            console.error(
+                "Organizer Problem Fetch Error:",
+                error.message
+            );
+
+            res.status(500).json({
+                success: false,
+                message: "Failed to load organizer problems."
+            });
+        }
+    }
+);
+
+
+// ====================================
+// CREATE PROBLEM STATEMENT
+// POST /api/problems
+// Only Organizer
+// ====================================
 
 router.post(
     "/",
-    require("../middleware/requireOrganizer"),
+    requireOrganizer,
     async (req, res) => {
-
         try {
+            const {
+                code,
+                title,
+                statement,
+                capacity,
+                isPublished
+            } = req.body || {};
 
-            const { code, title, statement, capacity } = req.body || {};
-
-            // Validate text fields
             if (
                 typeof code !== "string" ||
                 typeof title !== "string" ||
@@ -90,7 +142,6 @@ router.post(
             const problemTitle = title.trim();
             const problemStatement = statement.trim();
 
-            // Validate Problem Code
             if (!/^[A-Z0-9_-]{2,20}$/.test(problemCode)) {
                 return res.status(400).json({
                     success: false,
@@ -98,7 +149,6 @@ router.post(
                 });
             }
 
-            // Validate Title and Description
             if (
                 problemTitle.length < 3 ||
                 problemTitle.length > 150 ||
@@ -111,7 +161,6 @@ router.post(
                 });
             }
 
-            // Validate Team Capacity
             if (
                 typeof capacity !== "number" ||
                 !Number.isSafeInteger(capacity) ||
@@ -123,19 +172,32 @@ router.post(
                 });
             }
 
-            // Save Problem in MongoDB
+            if (
+                isPublished !== undefined &&
+                typeof isPublished !== "boolean"
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid publish status."
+                });
+            }
+
             const problem = await Problem.create({
                 code: problemCode,
                 title: problemTitle,
                 statement: problemStatement,
                 capacity: capacity,
                 selectedTeams: [],
-                isPublished: true
+                isPublished: isPublished !== undefined
+                    ? isPublished
+                    : true
             });
 
             res.status(201).json({
                 success: true,
-                message: "Problem Statement Created Successfully!",
+                message: problem.isPublished
+                    ? "Problem Published Successfully!"
+                    : "Problem Saved as Draft Successfully!",
                 problem: {
                     id: problem._id,
                     code: problem.code,
@@ -143,13 +205,12 @@ router.post(
                     statement: problem.statement,
                     capacity: problem.capacity,
                     occupied: 0,
-                    status: "Available"
+                    status: "Available",
+                    isPublished: problem.isPublished
                 }
             });
 
         } catch (error) {
-
-            // Duplicate Problem Code
             if (error.code === 11000) {
                 return res.status(409).json({
                     success: false,
@@ -163,25 +224,91 @@ router.post(
                 success: false,
                 message: "Failed to create Problem Statement."
             });
-
         }
-
     }
 );
 
- // ====================================
- // EDIT PROBLEM STATEMENT
- // PUT /api/problems/:id
- // ====================================
+
+// ====================================
+// PUBLISH / UNPUBLISH PROBLEM
+// PATCH /api/problems/:id/publish
+// Only Organizer
+// ====================================
+
+router.patch(
+    "/:id/publish",
+    requireOrganizer,
+    async (req, res) => {
+        try {
+            const { isPublished } = req.body || {};
+
+            if (typeof isPublished !== "boolean") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Publish status must be true or false."
+                });
+            }
+
+            const problem = await Problem.findById(req.params.id);
+
+            if (!problem) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Problem Statement not found."
+                });
+            }
+
+            problem.isPublished = isPublished;
+            await problem.save();
+
+            res.json({
+                success: true,
+                message: isPublished
+                    ? "Problem Published Successfully!"
+                    : "Problem Unpublished Successfully!",
+                problem: {
+                    id: problem._id,
+                    code: problem.code,
+                    title: problem.title,
+                    isPublished: problem.isPublished
+                }
+            });
+
+        } catch (error) {
+            if (error.name === "CastError") {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid Problem ID."
+                });
+            }
+
+            console.error("Problem Publish Error:", error.message);
+
+            res.status(500).json({
+                success: false,
+                message: "Failed to update publish status."
+            });
+        }
+    }
+);
+
+
+// ====================================
+// EDIT PROBLEM STATEMENT
+// PUT /api/problems/:id
+// ====================================
 
 router.put(
     "/:id",
-    require("../middleware/requireOrganizer"),
+    requireOrganizer,
     async (req, res) => {
-
         try {
-
-            const { code, title, statement, capacity } = req.body || {};
+            const {
+                code,
+                title,
+                statement,
+                capacity
+            } = req.body || {};
 
             if (
                 typeof code !== "string" ||
@@ -217,14 +344,16 @@ router.put(
                 });
             }
 
-            if (!Number.isSafeInteger(capacity) || capacity < 1) {
+            if (
+                !Number.isSafeInteger(capacity) ||
+                capacity < 1
+            ) {
                 return res.status(400).json({
                     success: false,
                     message: "Invalid Team Capacity."
                 });
             }
 
-            // Find existing problem
             const problem = await Problem.findById(req.params.id);
 
             if (!problem) {
@@ -234,7 +363,6 @@ router.put(
                 });
             }
 
-            // Capacity cannot be lower than selected teams
             const occupied = problem.selectedTeams.length;
 
             if (capacity < occupied) {
@@ -244,7 +372,6 @@ router.put(
                 });
             }
 
-            // Update details
             problem.code = problemCode;
             problem.title = problemTitle;
             problem.statement = problemStatement;
@@ -261,12 +388,12 @@ router.put(
                     title: problem.title,
                     statement: problem.statement,
                     capacity: problem.capacity,
-                    occupied: problem.selectedTeams.length
+                    occupied: problem.selectedTeams.length,
+                    isPublished: problem.isPublished
                 }
             });
 
         } catch (error) {
-
             if (error.code === 11000) {
                 return res.status(409).json({
                     success: false,
@@ -287,28 +414,23 @@ router.put(
                 success: false,
                 message: "Failed to update Problem Statement."
             });
-
         }
-
     }
 );
 
- // ====================================
- // DELETE PROBLEM STATEMENT
- // DELETE /api/problems/:id
- // ====================================
+
+// ====================================
+// DELETE PROBLEM STATEMENT
+// DELETE /api/problems/:id
+// Only Organizer
+// ====================================
 
 router.delete(
     "/:id",
-    require("../middleware/requireOrganizer"),
+    requireOrganizer,
     async (req, res) => {
-
         try {
-
-            // Find Problem in MongoDB
-            const problem = await Problem.findById(
-                req.params.id
-            );
+            const problem = await Problem.findById(req.params.id);
 
             if (!problem) {
                 return res.status(404).json({
@@ -317,7 +439,6 @@ router.delete(
                 });
             }
 
-            // Do not delete Problems selected by Teams
             if (problem.selectedTeams.length > 0) {
                 return res.status(409).json({
                     success: false,
@@ -325,7 +446,6 @@ router.delete(
                 });
             }
 
-            // Delete only if no Teams have selected it
             const deletedProblem = await Problem.findOneAndDelete({
                 _id: req.params.id,
                 "selectedTeams.0": { $exists: false }
@@ -345,7 +465,6 @@ router.delete(
             });
 
         } catch (error) {
-
             if (error.name === "CastError") {
                 return res.status(400).json({
                     success: false,
@@ -359,11 +478,8 @@ router.delete(
                 success: false,
                 message: "Failed to delete Problem Statement."
             });
-
         }
-
     }
 );
-
 
 module.exports = router;

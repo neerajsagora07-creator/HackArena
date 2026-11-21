@@ -1,3 +1,4 @@
+
 "use strict";
 // Hide dashboard until Organizer Login is verified
 document.documentElement.style.visibility = "hidden";
@@ -475,6 +476,7 @@ settingsForm.addEventListener("submit", async (event) => {
 // Load saved branding when page opens
 loadSavedEventInformation();
 
+ 
 // ---------------------------------
 // TEAM MANAGEMENT
 // ---------------------------------
@@ -487,30 +489,36 @@ function renderTeams() {
 
     list.replaceChildren();
 
-    empty.hidden = organizerData.teams.length > 0;
+    const teams = organizerData.teams;
 
-    organizerData.teams.forEach((team) => {
+    empty.hidden = teams.length > 0;
+
+    if (teams.length === 0) {
+        empty.querySelector("h3").textContent =
+            "No Registered Teams";
+
+        empty.querySelector("p").textContent =
+            "Verified teams will appear here.";
+        return;
+    }
+
+    teams.forEach((team) => {
 
         const row = document.createElement("tr");
 
         function addCell(value) {
-
             const cell = document.createElement("td");
-
             cell.textContent = value || "—";
-
             row.appendChild(cell);
         }
 
-        // Team details
         addCell(team.teamId);
         addCell(team.teamName);
         addCell(team.leaderEmail);
 
-        // Full team roster
         const memberCell = document.createElement("td");
 
-        const allMembers = [
+        const members = [
             team.leaderName,
             ...(Array.isArray(team.memberNames)
                 ? team.memberNames
@@ -518,42 +526,39 @@ function renderTeams() {
         ].filter(name => typeof name === "string" && name.trim());
 
         const details = document.createElement("details");
-
         const summary = document.createElement("summary");
 
-        summary.textContent = allMembers.length + " Members";
+        summary.textContent =
+            members.length + " Members — View Names";
 
-        const memberList = document.createElement("ol");
+        const namesList = document.createElement("ol");
 
-        allMembers.forEach((name, index) => {
+        members.forEach((name, index) => {
 
             const item = document.createElement("li");
 
-            item.textContent =
-                name + (index === 0 ? " (Team Leader)" : "");
+            item.textContent = index === 0
+                ? name + " (Team Leader)"
+                : name;
 
-            memberList.appendChild(item);
-
+            namesList.appendChild(item);
         });
 
-        details.append(summary, memberList);
-
+        details.append(summary, namesList);
         memberCell.appendChild(details);
-
         row.appendChild(memberCell);
 
-        // Problem selection will be connected later
-        addCell(team.selectedProblem || "Not selected");
+        addCell("Not selected");
 
         list.appendChild(row);
-
     });
-
 }
+
 
 // ====================================
 // LOAD REGISTERED TEAMS FROM MONGODB
 // ====================================
+
 
 async function loadTeams() {
 
@@ -568,7 +573,7 @@ async function loadTeams() {
             {
                 method: "GET",
                 headers: {
-                    "Authorization": "Bearer " + token
+                    Authorization: "Bearer " + token
                 },
                 cache: "no-store"
             }
@@ -576,41 +581,26 @@ async function loadTeams() {
 
         const result = await response.json();
 
-        if (
-            !response.ok ||
-            !result.success ||
-            !Array.isArray(result.teams)
-        ) {
+        if (!response.ok || !result.success) {
             throw new Error(
-                result.message || "Could not load teams."
+                result.message || "Failed to load teams."
             );
         }
 
         organizerData.teams = result.teams;
-
         renderTeams();
-
-        console.log(
-            "Registered Teams Loaded:",
-            result.totalTeams
-        );
-
     } catch (error) {
 
         console.error("Team Loading Error:", error);
 
-        const empty = document.getElementById("teams-empty");
+        document.getElementById("teams-empty").hidden = false;
 
-        empty.hidden = false;
+        document.querySelector("#teams-empty h3")
+            .textContent = "Could Not Load Teams";
 
-        empty.querySelector("h3").textContent =
-            "Could Not Load Teams";
-
-        empty.querySelector("p").textContent =
-            "Check backend connection and Organizer login.";
-
+        document.querySelector("#teams-empty p")
+            .textContent = error.message;
     }
-
 }
 
 
@@ -620,271 +610,350 @@ async function loadTeams() {
 
 const problemForm =
   document.getElementById("problem-form");
-  
-  let editingProblemId = null;
+
+let editingProblemId = null;
 
 
- // ====================================
- // CREATE AND EDIT PROBLEM STATEMENTS
- // ====================================
+// ====================================
+// CREATE AND EDIT PROBLEM STATEMENTS
+// ====================================
 
 problemForm.addEventListener("submit", async (event) => {
-
     event.preventDefault();
 
     if (!validateForm(problemForm)) {
         return;
     }
 
-    const token = sessionStorage.getItem(
-        "hackarenaOrganizerToken"
-    );
+    const token = sessionStorage.getItem("hackarenaOrganizerToken");
 
     if (!token) {
         window.location.replace("./index.html");
         return;
     }
 
-    const code = document.getElementById(
-        "problem-code"
-    ).value.trim().toUpperCase();
+    const code = document.getElementById("problem-code").value.trim().toUpperCase();
+    const title = document.getElementById("problem-title").value.trim();
+    const statement = document.getElementById("problem-statement").value.trim();
+    const capacity = Number(document.getElementById("problem-capacity").value);
+    const visibility = document.getElementById("problem-visibility").value;
+    const isPublished = visibility === "published";
 
-    const title = document.getElementById(
-        "problem-title"
-    ).value.trim();
-
-    const statement = document.getElementById(
-        "problem-statement"
-    ).value.trim();
-
-    const capacity = Number(
-        document.getElementById("problem-capacity").value
-    );
-
-    const status = document.getElementById(
-        "problem-status"
-    );
-
-    const submitButton = problemForm.querySelector(
-        'button[type="submit"]'
-    );
+    const status = document.getElementById("problem-status");
+    const submitButton = problemForm.querySelector('button[type="submit"]');
 
     if (!Number.isSafeInteger(capacity) || capacity < 1) {
         status.textContent = "Enter a valid Team Capacity.";
         return;
     }
 
-    // Check Create or Edit Mode
     const isEditing = editingProblemId !== null;
-
     const url = isEditing
         ? "http://127.0.0.1:5000/api/problems/" + editingProblemId
         : "http://127.0.0.1:5000/api/problems";
-
     const method = isEditing ? "PUT" : "POST";
 
     submitButton.disabled = true;
-
     status.textContent = isEditing
         ? "Updating Problem Statement..."
         : "Saving Problem Statement...";
 
     try {
-
         const response = await fetch(url, {
-            method: method,
+            method,
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": "Bearer " + token
             },
             body: JSON.stringify({
-                code: code,
-                title: title,
-                statement: statement,
-                capacity: capacity
+                code,
+                title,
+                statement,
+                capacity,
+                ...(isEditing ? {} : { isPublished })
             })
         });
 
         const result = await response.json();
 
         if (!response.ok || !result.success) {
-            throw new Error(
-                result.message || "Failed to save Problem."
+            throw new Error(result.message || "Failed to save Problem.");
+        }
+
+        let savedProblem = result.problem;
+
+        if (isEditing && Boolean(savedProblem.isPublished) !== isPublished) {
+            const visibilityResponse = await fetch(
+                "http://127.0.0.1:5000/api/problems/" + editingProblemId + "/publish",
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer " + token
+                    },
+                    body: JSON.stringify({ isPublished })
+                }
             );
+
+            const visibilityResult = await visibilityResponse.json();
+
+            if (!visibilityResponse.ok || !visibilityResult.success) {
+                throw new Error(
+                    visibilityResult.message ||
+                    "Problem details saved, but visibility could not be changed."
+                );
+            }
+
+            savedProblem = visibilityResult.problem || {
+                ...savedProblem,
+                isPublished
+            };
         }
 
         if (isEditing) {
-
-            // Update existing Problem
             const index = organizerData.problems.findIndex(
-                (problem) => problem.id === editingProblemId
+                (problem) => String(problem.id || problem._id) === String(editingProblemId)
             );
 
             if (index !== -1) {
                 organizerData.problems[index] = {
                     ...organizerData.problems[index],
-                    ...result.problem
+                    ...savedProblem
                 };
             }
-
         } else {
-
-            // Add newly created Problem
-            organizerData.problems.push(result.problem);
-
+            organizerData.problems.push(savedProblem);
         }
 
-        // Refresh Problem Table
         renderProblems();
-
-        // Reset Form
         problemForm.reset();
-
+        document.getElementById("problem-visibility").value = "published";
         editingProblemId = null;
-
         submitButton.textContent = "Check Problem Details";
 
         status.textContent = isEditing
             ? "Problem Statement Updated Successfully!"
-            : "Problem Statement Created Successfully!";
+            : (isPublished
+                ? "Problem Statement Published Successfully!"
+                : "Problem Statement Saved as Draft Successfully!");
 
     } catch (error) {
-
         status.textContent = error.message;
-
     } finally {
-
         submitButton.disabled = false;
-
     }
-
 });
 
 
-
-
 function renderProblems() {
+    const list = document.getElementById("problem-list");
+    const empty = document.getElementById("problem-list-empty");
 
-  const list =
-    document.getElementById("problem-list");
+    list.replaceChildren();
+    empty.hidden = organizerData.problems.length > 0;
 
-  const empty =
-    document.getElementById("problem-list-empty");
+    organizerData.problems.forEach((problem) => {
+        const row = document.createElement("tr");
 
-  list.replaceChildren();
+        [
+            problem.code,
+            problem.title,
+            problem.capacity,
+            problem.occupied
+        ].forEach((value) => {
+            const cell = document.createElement("td");
+            cell.textContent = String(value ?? "—");
+            row.append(cell);
+        });
 
-  empty.hidden =
-    organizerData.problems.length > 0;
+        const statusCell = document.createElement("td");
+        const badge = document.createElement("span");
+        badge.className = "status-pill";
 
-  organizerData.problems.forEach((problem) => {
+        const isPublished = problem.isPublished !== false;
+        const capacity = Number(problem.capacity);
+        const occupied = Number(problem.occupied);
 
-    const row = document.createElement("tr");
+        if (!isPublished) {
+            badge.textContent = "Draft";
+            badge.classList.add("draft");
+        } else if (
+            Number.isFinite(capacity) &&
+            capacity > 0 &&
+            Number.isFinite(occupied) &&
+            occupied >= 0
+        ) {
+            const full = occupied >= capacity;
+            badge.textContent = full ? "Full" : "Published";
+            badge.classList.add(full ? "full" : "available");
+        } else {
+            badge.textContent = "Published";
+            badge.classList.add("available");
+        }
 
-    const values = [
-      problem.code,
-      problem.title,
-      problem.capacity,
-      problem.occupied
-    ];
-
-    values.forEach((value) => {
-
-      const cell = document.createElement("td");
-
-      cell.textContent =
-        String(value ?? "—");
-
-      row.append(cell);
-    });
-
-    const statusCell =
-      document.createElement("td");
-
-    const badge =
-      document.createElement("span");
-
-    badge.className = "status-pill";
-
-    const capacity = Number(problem.capacity);
-    const occupied = Number(problem.occupied);
-
-    if (
-      Number.isFinite(capacity) &&
-      capacity > 0 &&
-      Number.isFinite(occupied) &&
-      occupied >= 0
-    ) {
-
-      const full =
-        occupied >= capacity;
-
-      badge.textContent =
-        full ? "Full" : "Available";
-
-      badge.classList.add(
-        full ? "full" : "available"
-      );
-
-    } else {
-
-      badge.textContent = "Not loaded";
-    }
-
-    statusCell.append(badge);
-    
-        // ====================================
-        // EDIT PROBLEM BUTTON
-        // ====================================
+        statusCell.append(badge);
 
         const editButton = document.createElement("button");
-
         editButton.type = "button";
         editButton.textContent = "Edit";
         editButton.className = "secondary-button";
-
         editButton.style.marginLeft = "10px";
 
         editButton.addEventListener("click", () => {
+            editingProblemId = problem.id || problem._id;
 
-            // Remember selected Problem ID
-            editingProblemId = problem.id;
+            document.getElementById("problem-code").value = problem.code || "";
+            document.getElementById("problem-title").value = problem.title || "";
+            document.getElementById("problem-statement").value = problem.statement || "";
+            document.getElementById("problem-capacity").value = problem.capacity || 1;
+            document.getElementById("problem-visibility").value =
+                problem.isPublished === false ? "draft" : "published";
 
-            // Fill existing details in form
-            document.getElementById("problem-code").value =
-                problem.code;
+            problemForm.querySelector('button[type="submit"]').textContent =
+                "Save Changes";
 
-            document.getElementById("problem-title").value =
-                problem.title;
+            document.getElementById("problem-status").textContent =
+                "Editing Problem: " + (problem.code || "");
 
-            document.getElementById("problem-statement").value =
-                problem.statement;
-
-            document.getElementById("problem-capacity").value =
-                problem.capacity;
-
-            // Change submit button label
-            problemForm.querySelector(
-                'button[type="submit"]'
-            ).textContent = "Save Changes";
-
-            document.getElementById("problem-status")
-                .textContent =
-                "Editing Problem: " + problem.code;
-
-            // Scroll to Problem Form
             problemForm.scrollIntoView({
                 behavior: "smooth",
                 block: "start"
             });
-
         });
 
         statusCell.append(editButton);
 
-    row.append(statusCell);
+        const visibilityButton = document.createElement("button");
+        visibilityButton.type = "button";
+        visibilityButton.textContent = isPublished ? "Unpublish" : "Publish";
+        visibilityButton.className = "secondary-button";
+        visibilityButton.style.marginLeft = "8px";
 
-    list.append(row);
-  });
+        visibilityButton.addEventListener("click", async () => {
+            const token = sessionStorage.getItem("hackarenaOrganizerToken");
+            const problemId = problem.id || problem._id;
+
+            if (!token || !problemId) {
+                document.getElementById("problem-status").textContent =
+                    "Organizer login or Problem ID is missing.";
+                return;
+            }
+
+            visibilityButton.disabled = true;
+
+            try {
+                const response = await fetch(
+                    "http://127.0.0.1:5000/api/problems/" + problemId + "/publish",
+                    {
+                        method: "PATCH",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": "Bearer " + token
+                        },
+                        body: JSON.stringify({ isPublished: !isPublished })
+                    }
+                );
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || "Could not change problem visibility.");
+                }
+
+                const index = organizerData.problems.findIndex(
+                    (item) => String(item.id || item._id) === String(problemId)
+                );
+
+                if (index !== -1) {
+                    organizerData.problems[index] = {
+                        ...organizerData.problems[index],
+                        ...(result.problem || {}),
+                        isPublished: !isPublished
+                    };
+                }
+
+                renderProblems();
+                document.getElementById("problem-status").textContent =
+                    !isPublished
+                        ? "Problem published. Participants can now see it."
+                        : "Problem unpublished. It is now hidden from participants.";
+
+            } catch (error) {
+                document.getElementById("problem-status").textContent = error.message;
+                visibilityButton.disabled = false;
+            }
+        });
+
+        statusCell.append(visibilityButton);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.textContent = "Delete";
+        deleteButton.className = "secondary-button";
+        deleteButton.style.marginLeft = "8px";
+
+        deleteButton.addEventListener("click", async () => {
+            const token = sessionStorage.getItem("hackarenaOrganizerToken");
+            const problemId = problem.id || problem._id;
+
+            if (!token || !problemId) {
+                document.getElementById("problem-status").textContent =
+                    "Organizer login or Problem ID is missing.";
+                return;
+            }
+
+            const confirmed = window.confirm(
+                "Are you sure you want to delete problem " +
+                (problem.code || "") +
+                "? Problems already selected by teams cannot be deleted."
+            );
+
+            if (!confirmed) return;
+
+            deleteButton.disabled = true;
+
+            try {
+                const response = await fetch(
+                    "http://127.0.0.1:5000/api/problems/" + problemId,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            "Authorization": "Bearer " + token
+                        }
+                    }
+                );
+
+                const result = await response.json();
+
+                if (!response.ok || !result.success) {
+                    throw new Error(result.message || "Could not delete problem.");
+                }
+
+                organizerData.problems = organizerData.problems.filter(
+                    (item) => String(item.id || item._id) !== String(problemId)
+                );
+
+                if (String(editingProblemId) === String(problemId)) {
+                    problemForm.reset();
+                    editingProblemId = null;
+                    problemForm.querySelector('button[type="submit"]').textContent =
+                        "Check Problem Details";
+                }
+
+                renderProblems();
+                document.getElementById("problem-status").textContent =
+                    "Problem deleted successfully.";
+
+            } catch (error) {
+                document.getElementById("problem-status").textContent = error.message;
+                deleteButton.disabled = false;
+            }
+        });
+
+        statusCell.append(deleteButton);
+        row.append(statusCell);
+        list.append(row);
+    });
 }
 
 // ---------------------------------
@@ -1561,9 +1630,9 @@ function updateOverview() {
 // ---------------------------------
 
 
- // ====================================
- // ORGANIZER LOGOUT
- // ====================================
+// ====================================
+// ORGANIZER LOGOUT
+// ====================================
 
 document.getElementById("logout-button")
     .addEventListener("click", () => {
@@ -1588,18 +1657,27 @@ document.getElementById("logout-button")
 // INITIAL PAGE SETUP
 // ---------------------------------
 
- // ====================================
- // LOAD SAVED PROBLEMS FROM MONGODB
- // ====================================
+
+// ====================================
+// LOAD SAVED PROBLEMS FROM MONGODB
+// ====================================
 
 async function loadProblems() {
-
     try {
+        const token = sessionStorage.getItem("hackarenaOrganizerToken");
+
+        if (!token) {
+            window.location.replace("./index.html");
+            return;
+        }
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/problems",
+            "http://127.0.0.1:5000/api/problems/organizer/all",
             {
                 method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
                 cache: "no-store"
             }
         );
@@ -1611,32 +1689,24 @@ async function loadProblems() {
             !result.success ||
             !Array.isArray(result.problems)
         ) {
-            throw new Error("Failed to load Problems.");
+            throw new Error(result.message || "Failed to load Problems.");
         }
 
-        // Store MongoDB Problems in Dashboard
         organizerData.problems = result.problems;
-
-        // Update Problem Statements Table
         renderProblems();
 
     } catch (error) {
-
         console.error("Problem Load Error:", error);
-
-        document.getElementById("problem-status")
-            .textContent =
-            "Could not load saved Problems. Check Backend Server.";
-
+        document.getElementById("problem-status").textContent =
+            "Could not load saved Problems: " + error.message;
     }
-
 }
 
 function initializeOrganizer() {
 
   showPage("overview");
 
-loadTeams();
+  loadTeams();
   renderProblems();
   loadProblems();
   renderJudges();
@@ -1646,7 +1716,6 @@ loadTeams();
   updateAnalytics(null);
   updateOverview();
 }
-
 
  // ====================================
  // ORGANIZER LOGIN VERIFICATION
@@ -1744,7 +1813,6 @@ async function verifyOrganizerLogin() {
 
 // Start Organizer Login Verification
 verifyOrganizerLogin();
-
 
 // ---------------------------------
 // FUTURE BACKEND INTEGRATION
