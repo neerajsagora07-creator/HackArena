@@ -1,9 +1,4 @@
-
 const mongoose = require("mongoose");
-
-// ======================================
-// HACKARENA TEAM MODEL
-// ======================================
 
 const teamSchema = new mongoose.Schema({
 
@@ -28,20 +23,17 @@ const teamSchema = new mongoose.Schema({
         trim: true
     },
 
-    // Other members (leader is separate)
     memberNames: [{
         type: String,
         trim: true
     }],
 
-    // Password is stored as a hash
     passwordHash: {
         type: String,
         required: true,
         select: false
     },
 
-    // Generated after email verification
     teamId: {
         type: String,
         unique: true,
@@ -53,7 +45,6 @@ const teamSchema = new mongoose.Schema({
         default: false
     },
 
-    // OTP is stored as a hash, not plain text
     verificationOtpHash: {
         type: String,
         select: false
@@ -62,6 +53,12 @@ const teamSchema = new mongoose.Schema({
     verificationExpiresAt: {
         type: Date,
         select: false
+    },
+
+    selectedProblem: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Problem",
+        default: null
     }
 
 }, {

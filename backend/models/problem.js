@@ -1,13 +1,8 @@
 
 const mongoose = require("mongoose");
 
-// ====================================
-// HACKARENA PROBLEM STATEMENT MODEL
-// ====================================
-
 const problemSchema = new mongoose.Schema({
 
-    // Unique Problem Code
     code: {
         type: String,
         required: true,
@@ -16,34 +11,63 @@ const problemSchema = new mongoose.Schema({
         trim: true
     },
 
-    // Problem Title
     title: {
         type: String,
         required: true,
         trim: true
     },
 
-    // Full Problem Description
     statement: {
         type: String,
-        required: true,
+        default: "",
         trim: true
     },
 
-    // Maximum Teams Allowed
+    serialNumber: {
+        type: Number,
+        default: null
+    },
+
+    organization: {
+        type: String,
+        default: "",
+        trim: true
+    },
+
+    category: {
+        type: String,
+        default: "",
+        trim: true
+    },
+
+    theme: {
+        type: String,
+        default: "",
+        trim: true
+    },
+
+    submittedIdeasCount: {
+        type: Number,
+        default: 0
+    },
+
+    source: {
+        type: String,
+        enum: ["manual", "pdf"],
+        default: "manual"
+    },
+
     capacity: {
         type: Number,
         default: 3,
         min: 1
     },
 
-    // Teams that selected this problem
     selectedTeams: [{
         type: mongoose.Schema.Types.ObjectId,
         ref: "Team"
     }],
 
-    // Problem Visibility
     isPublished: {
         type: Boolean,
         default: true

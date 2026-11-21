@@ -548,7 +548,12 @@ function renderTeams() {
         memberCell.appendChild(details);
         row.appendChild(memberCell);
 
-        addCell("Not selected");
+        addCell(
+    team.selectedProblem
+        ? team.selectedProblem.title + " (" +
+          team.selectedProblem.code + ")"
+        : "Not selected"
+);
 
         list.appendChild(row);
     });
@@ -956,37 +961,260 @@ function renderProblems() {
     });
 }
 
+
 // ---------------------------------
 // PROBLEM FILE SELECTION
 // ---------------------------------
 
-document.getElementById("problem-file")
-  .addEventListener("change", (event) => {
+const problemFileInput =
+    document.getElementById("problem-file");
 
-    const file = event.target.files[0];
+const uploadPdfButton =
+    document.getElementById("upload-problem-pdf");
 
-    const status =
-      document.getElementById(
-        "problem-file-status"
-      );
+const confirmPdfImportButton =
+    document.getElementById("confirm-problem-import");
+
+const pdfStatus =
+    document.getElementById("problem-file-status");
+
+const pdfPreview =
+    document.getElementById("problem-pdf-preview");
+
+const pdfPreviewBody =
+    document.getElementById("problem-pdf-preview-body");
+
+const pdfPreviewSummary =
+    document.getElementById("problem-pdf-preview-summary");
+
+let extractedPdfProblems = [];
+
+problemFileInput.addEventListener("change", () => {
+
+    const file = problemFileInput.files[0];
+
+    pdfPreview.hidden = true;
+    pdfPreviewBody.replaceChildren();
+
+    extractedPdfProblems = [];
+
+    confirmPdfImportButton.disabled = true;
 
     if (!file) {
-
-      status.textContent =
-        "No file selected. Upload formats " +
-        "and import rules are not finalized.";
-
-      return;
+        pdfStatus.textContent = "Please select a PDF file.";
+        uploadPdfButton.disabled = true;
+        return;
     }
 
-    const size =
-      file.size / (1024 * 1024);
+    if (
+        file.type !== "application/pdf" &&
+        !file.name.toLowerCase().endsWith(".pdf")
+    ) {
+        pdfStatus.textContent = "Only PDF files are allowed.";
+        uploadPdfButton.disabled = true;
+        problemFileInput.value = "";
+        return;
+    }
 
-    status.textContent =
-      `Selected: ${file.name} ` +
-      `(${size.toFixed(2)} MB). ` +
-      "The file has not been uploaded or imported.";
-  });
+    if (file.size > 10 * 1024 * 1024) {
+        pdfStatus.textContent = "PDF size must be below 10 MB.";
+        uploadPdfButton.disabled = true;
+        problemFileInput.value = "";
+        return;
+    }
+
+    pdfStatus.textContent = "Selected: " + file.name;
+    uploadPdfButton.disabled = false;
+
+});
+
+uploadPdfButton.addEventListener("click", async () => {
+
+    const file = problemFileInput.files[0];
+
+    const token = sessionStorage.getItem(
+        "hackarenaOrganizerToken"
+    );
+
+    if (!token) {
+        window.location.replace("./index.html");
+        return;
+    }
+
+    if (!file) {
+        pdfStatus.textContent = "Please select a PDF file.";
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append("pdfFile", file);
+
+    uploadPdfButton.disabled = true;
+    confirmPdfImportButton.disabled = true;
+
+    pdfStatus.textContent = "Extracting problem statements...";
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/problems/import/pdf/preview",
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                body: formData
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "PDF extraction failed."
+            );
+        }
+
+        if (
+            !Array.isArray(result.problems) ||
+            result.problems.length === 0
+        ) {
+            throw new Error("No problem statements found.");
+        }
+
+        extractedPdfProblems = result.problems;
+
+        pdfPreviewBody.replaceChildren();
+
+        extractedPdfProblems.forEach((problem) => {
+
+            const row = document.createElement("tr");
+
+            const values = [
+                problem.serialNumber,
+                problem.code,
+                problem.organization,
+                problem.title,
+                problem.category,
+                problem.submittedIdeasCount,
+                problem.theme
+            ];
+
+            values.forEach((value) => {
+
+                const cell = document.createElement("td");
+
+                cell.textContent =
+                    value === null || value === undefined
+                        ? ""
+                        : String(value);
+
+                row.appendChild(cell);
+
+            });
+
+            pdfPreviewBody.appendChild(row);
+
+        });
+
+        pdfPreviewSummary.textContent =
+            "Found " + result.totalProblems +
+            " problem statements across " +
+            result.totalPages + " pages.";
+
+        pdfPreview.hidden = false;
+
+        confirmPdfImportButton.disabled = false;
+
+        pdfStatus.textContent =
+            "PDF extracted successfully! Review the problems and confirm import.";
+
+    } catch (error) {
+
+        pdfStatus.textContent = error.message;
+
+    } finally {
+
+        uploadPdfButton.disabled = false;
+
+    }
+
+});
+
+
+confirmPdfImportButton.addEventListener("click", async () => {
+
+    const token = sessionStorage.getItem(
+        "hackarenaOrganizerToken"
+    );
+
+    if (!token) {
+        window.location.replace("./index.html");
+        return;
+    }
+
+    if (extractedPdfProblems.length === 0) {
+        pdfStatus.textContent = "Please extract a PDF first.";
+        return;
+    }
+
+    const confirmed = window.confirm(
+        "Are you sure you want to import these problem statements into HackArena?"
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    confirmPdfImportButton.disabled = true;
+
+    pdfStatus.textContent = "Importing problems into MongoDB...";
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/problems/import/pdf/confirm",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    problems: extractedPdfProblems
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Problem import failed."
+            );
+        }
+
+        pdfStatus.textContent =
+            "Import completed! Imported: " +
+            result.importedCount +
+            " | Skipped: " +
+            result.skippedCount;
+
+        extractedPdfProblems = [];
+
+        await loadProblems();
+
+    } catch (error) {
+
+        pdfStatus.textContent = error.message;
+        confirmPdfImportButton.disabled = false;
+
+    }
+
+});
+
+
+ 
 
 // ---------------------------------
 // JUDGE INVITATIONS
@@ -1810,6 +2038,7 @@ async function verifyOrganizerLogin() {
 
     }
 }
+
 
 // Start Organizer Login Verification
 verifyOrganizerLogin();

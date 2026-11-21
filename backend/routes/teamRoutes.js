@@ -8,12 +8,9 @@ const rateLimit = require("express-rate-limit");
 
 const Team = require("../models/Team");
 const Event = require("../models/event");
+const Problem = require("../models/Problem");
 
 const router = express.Router();
-
-// =====================================
-// SECURITY - LIMIT REQUESTS
-// =====================================
 
 const registerLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -37,12 +34,7 @@ const loginLimit = rateLimit({
     }
 });
 
-// =====================================
-// EMAIL CONFIGURATION
-// =====================================
-
 function createMailTransport() {
-
     const port = Number(process.env.SMTP_PORT || 587);
 
     return nodemailer.createTransport({
@@ -56,17 +48,13 @@ function createMailTransport() {
     });
 }
 
-// =====================================
-// OTP HASH
-// =====================================
-
 function hashOtp(email, otp) {
-
     return crypto
         .createHmac("sha256", process.env.JWT_SECRET)
         .update(email + ":" + otp)
         .digest("hex");
 }
+
 
 // =====================================
 // REGISTER TEAM
@@ -84,8 +72,6 @@ router.post("/register", registerLimit, async (req, res) => {
             memberNames = [],
             password
         } = req.body;
-
-        // Required field validation
 
         if (
             typeof teamName !== "string" ||
@@ -120,8 +106,6 @@ router.post("/register", registerLimit, async (req, res) => {
             });
         }
 
-        // Check actual team member names
-
         const members = memberNames.map((member) =>
             typeof member === "string" ? member.trim() : ""
         );
@@ -136,8 +120,6 @@ router.post("/register", registerLimit, async (req, res) => {
                 message: "Enter valid member names."
             });
         }
-
-        // Get organizer's event settings
 
         const event = await Event.findOne();
 
@@ -162,8 +144,6 @@ router.post("/register", registerLimit, async (req, res) => {
             });
         }
 
-        // Check duplicate leader email
-
         const existingTeam = await Team.findOne({
             leaderEmail: email
         });
@@ -174,8 +154,6 @@ router.post("/register", registerLimit, async (req, res) => {
                 message: "This email is already registered."
             });
         }
-
-        // Real email service is required
 
         if (
             !process.env.SMTP_HOST ||
@@ -188,24 +166,15 @@ router.post("/register", registerLimit, async (req, res) => {
             });
         }
 
-        // Secure password hash
-
         const passwordHash = await bcrypt.hash(password, 12);
 
-        // Generate a 6-digit OTP
-
-        const otp = crypto.randomInt(
-            100000,
-            1000000
-        ).toString();
+        const otp = crypto.randomInt(100000, 1000000).toString();
 
         const verificationOtpHash = hashOtp(email, otp);
 
         const verificationExpiresAt = new Date(
             Date.now() + 10 * 60 * 1000
         );
-
-        // Save pending team in MongoDB
 
         const team = await Team.create({
             teamName: name,
@@ -217,8 +186,6 @@ router.post("/register", registerLimit, async (req, res) => {
             verificationOtpHash,
             verificationExpiresAt
         });
-
-        // Send OTP email
 
         try {
 
@@ -239,7 +206,6 @@ router.post("/register", registerLimit, async (req, res) => {
 
             console.error("Email Error:", mailError.message);
 
-            // Do not leave a pending record if sending fails
             await Team.deleteOne({
                 _id: team._id,
                 emailVerified: false
@@ -249,6 +215,7 @@ router.post("/register", registerLimit, async (req, res) => {
                 success: false,
                 message: "Could not send verification email."
             });
+
         }
 
         res.status(201).json({
@@ -271,8 +238,11 @@ router.post("/register", registerLimit, async (req, res) => {
             success: false,
             message: "Team registration failed."
         });
+
     }
+
 });
+
 
 // =====================================
 // VERIFY EMAIL OTP
@@ -340,9 +310,8 @@ router.post("/verify-email", loginLimit, async (req, res) => {
             });
         }
 
-        // Capacity check before activating team
-
         const event = await Event.findOne();
+
         const maximumTeams = event?.maximumTeams || 60;
 
         const registeredTeams = await Team.countDocuments({
@@ -356,13 +325,11 @@ router.post("/verify-email", loginLimit, async (req, res) => {
             });
         }
 
-        // Generate unique Team ID
-
         let saved = false;
 
         for (let attempt = 0; attempt < 5; attempt++) {
 
-           const randomId = crypto.randomInt(10000, 100000).toString();
+            const randomId = crypto.randomInt(10000, 100000).toString();
 
             team.teamId = "HA-" + randomId;
             team.emailVerified = true;
@@ -380,7 +347,9 @@ router.post("/verify-email", loginLimit, async (req, res) => {
                 if (error.code !== 11000) {
                     throw error;
                 }
+
             }
+
         }
 
         if (!saved) {
@@ -402,8 +371,11 @@ router.post("/verify-email", loginLimit, async (req, res) => {
             success: false,
             message: "Email verification failed."
         });
+
     }
+
 });
+
 
 // =====================================
 // TEAM LOGIN
@@ -470,7 +442,8 @@ router.post("/login", loginLimit, async (req, res) => {
                 teamId: team.teamId,
                 teamName: team.teamName,
                 leaderName: team.leaderName,
-                memberNames: team.memberNames
+                memberNames: team.memberNames,
+                selectedProblem: team.selectedProblem || null
             }
         });
 
@@ -482,25 +455,24 @@ router.post("/login", loginLimit, async (req, res) => {
             success: false,
             message: "Team login failed."
         });
+
     }
+
 });
 
- // ====================================
- // VERIFY PARTICIPANT LOGIN
- // GET /api/teams/me
- // ====================================
+
+// =====================================
+// VERIFY PARTICIPANT LOGIN
+// GET /api/teams/me
+// =====================================
 
 router.get("/me", async (req, res) => {
 
     try {
 
-        // Get JWT token from request
-        const authorization = req.headers.authorization;
+        const authorization = req.headers.authorization || "";
 
-        if (
-            !authorization ||
-            !authorization.startsWith("Bearer ")
-        ) {
+        if (!authorization.startsWith("Bearer ")) {
             return res.status(401).json({
                 success: false,
                 message: "Please login first."
@@ -509,10 +481,12 @@ router.get("/me", async (req, res) => {
 
         const token = authorization.slice(7);
 
-        // Verify JWT token
         const decoded = jwt.verify(
             token,
-            process.env.JWT_SECRET
+            process.env.JWT_SECRET,
+            {
+                algorithms: ["HS256"]
+            }
         );
 
         if (
@@ -525,7 +499,6 @@ router.get("/me", async (req, res) => {
             });
         }
 
-        // Get actual team from MongoDB
         const team = await Team.findById(decoded.id);
 
         if (
@@ -539,7 +512,24 @@ router.get("/me", async (req, res) => {
             });
         }
 
-        // Return verified team details
+        let selectedProblem = null;
+
+        if (team.selectedProblem) {
+
+            const problem = await Problem.findById(
+                team.selectedProblem
+            ).select("code title");
+
+            if (problem) {
+                selectedProblem = {
+                    id: problem._id,
+                    code: problem.code,
+                    title: problem.title
+                };
+            }
+
+        }
+
         res.json({
             success: true,
             message: "Participant authenticated successfully.",
@@ -548,7 +538,8 @@ router.get("/me", async (req, res) => {
                 teamName: team.teamName,
                 leaderName: team.leaderName,
                 leaderEmail: team.leaderEmail,
-                memberNames: team.memberNames
+                memberNames: team.memberNames,
+                selectedProblem: selectedProblem
             }
         });
 
@@ -576,10 +567,11 @@ router.get("/me", async (req, res) => {
 
 });
 
-// ====================================
+
+// =====================================
 // ORGANIZER - REGISTERED TEAM RECORDS
 // GET /api/teams/organizer/roster
-// ====================================
+// =====================================
 
 router.get(
     "/organizer/roster",
@@ -588,28 +580,54 @@ router.get(
 
         try {
 
-            // Fetch only verified registered teams
             const teams = await Team.find({
                 emailVerified: true
             })
             .select(
-                "teamId teamName leaderName leaderEmail memberNames"
+                "teamId teamName leaderName leaderEmail memberNames selectedProblem"
             )
             .sort({ _id: -1 })
             .lean();
 
+            const problemIds = teams
+                .map((team) => team.selectedProblem)
+                .filter((id) => id);
+
+            const problems = await Problem.find({
+                _id: { $in: problemIds }
+            })
+            .select("code title")
+            .lean();
+
+            const problemMap = new Map();
+
+            problems.forEach((problem) => {
+                problemMap.set(
+                    problem._id.toString(),
+                    {
+                        id: problem._id,
+                        code: problem.code,
+                        title: problem.title
+                    }
+                );
+            });
+
+            const updatedTeams = teams.map((team) => ({
+                ...team,
+                selectedProblem: team.selectedProblem
+                    ? problemMap.get(team.selectedProblem.toString()) || null
+                    : null
+            }));
+
             res.json({
                 success: true,
-                totalTeams: teams.length,
-                teams: teams
+                totalTeams: updatedTeams.length,
+                teams: updatedTeams
             });
 
         } catch (error) {
 
-            console.error(
-                "Team Roster Error:",
-                error.message
-            );
+            console.error("Team Roster Error:", error.message);
 
             res.status(500).json({
                 success: false,
@@ -620,5 +638,6 @@ router.get(
 
     }
 );
+
 
 module.exports = router;

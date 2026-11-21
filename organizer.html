@@ -473,22 +473,79 @@
 
       </article>
 
-      <article class="panel section-gap">
+     
+<article class="panel section-gap">
 
-        <h3>Upload Problem Statements</h3>
+    <h3>Upload Problem Statements</h3>
 
-        <label class="field-label" for="problem-file">
-          Select your source file
-        </label>
+    <label class="field-label" for="problem-file">
+        Select your PDF file
+    </label>
 
-        <input id="problem-file" type="file">
+    <input
+        id="problem-file"
+        type="file"
+        accept=".pdf,application/pdf"
+    >
 
-        <p id="problem-file-status" class="help" role="status">
-          No file selected. Upload formats and
-          import rules are not finalized.
-        </p>
+    <button
+        type="button"
+        id="upload-problem-pdf"
+        class="button"
+        disabled
+    >
+        Upload & Extract PDF
+    </button>
 
-      </article>
+    <p id="problem-file-status" class="help" role="status">
+        Please select a PDF file.
+    </p>
+
+    <div id="problem-pdf-preview" hidden>
+
+        <h3>Extracted Problem Statements</h3>
+
+        <p id="problem-pdf-preview-summary"></p>
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>S.No.</th>
+                        <th>PS Number</th>
+                        <th>Organization</th>
+                        <th>Problem Title</th>
+                        <th>Category</th>
+                        <th>Ideas Count</th>
+                        <th>Theme</th>
+                    </tr>
+                </thead>
+
+                <tbody id="problem-pdf-preview-body">
+                </tbody>
+
+            </table>
+
+        </div>
+        </table>
+
+    </div>
+
+    <button
+        type="button"
+        id="confirm-problem-import"
+        class="button"
+        disabled
+    >
+        Confirm Import & Publish
+    </button>
+
+
+    </div>
+
+</article>
 
       <!-- PROBLEM LIST -->
       <article class="panel section-gap">
