@@ -196,30 +196,52 @@ function renderOrganizerBranding(branding) {
 // LOAD PREVIOUS EVENT INFORMATION
 // ---------------------------------
 
+
 function applyEventInformation(saved) {
-  const values = {
-    "event-name": "eventName",
-    "organization": "organization",
-    "event-date": "eventDate",
-    "event-end-date": "eventEndDate",
-    "event-time": "eventTime",
-    "event-venue": "eventVenue",
-    "event-description": "eventDescription",
-    "maximum-teams": "maximumTeams",
-    "maximum-members": "maximumMembers",
-    "default-problem-capacity": "defaultProblemCapacity"
-    
-  };
-  Object.entries(values).forEach(([id, key]) => {
-    if (saved[key] !== undefined && saved[key] !== null) {
-      document.getElementById(id).value = saved[key];
+    const values = {
+        "event-name": "eventName",
+        "organization": "organization",
+        "event-date": "eventDate",
+        "event-end-date": "eventEndDate",
+        "event-time": "eventTime",
+        "event-venue": "eventVenue",
+        "event-description": "eventDescription",
+        "maximum-teams": "maximumTeams",
+        "maximum-members": "maximumMembers",
+        "default-problem-capacity": "defaultProblemCapacity"
+    };
+
+    Object.entries(values).forEach(([id, key]) => {
+        if (saved[key] !== undefined && saved[key] !== null) {
+            document.getElementById(id).value = saved[key];
+        }
+    });
+
+    const deadlineInput = document.getElementById("submission-deadline");
+
+    if (deadlineInput) {
+        if (saved.submissionDeadline) {
+            const deadline = new Date(saved.submissionDeadline);
+
+            if (!isNaN(deadline.getTime())) {
+                const localDeadline = new Date(
+                    deadline.getTime() - deadline.getTimezoneOffset() * 60000
+                );
+
+                deadlineInput.value = localDeadline.toISOString().slice(0, 16);
+            }
+        } else {
+            deadlineInput.value = "";
+        }
     }
-  });
-  selectedLogoData = typeof saved.logo === "string" ? saved.logo : "";
-  displayOrganizerLogo(selectedLogoData);
-  renderOrganizerBranding(saved);
-  organizerData.eventSettings = saved;
-  updateOverview();
+
+    selectedLogoData = typeof saved.logo === "string" ? saved.logo : "";
+
+    displayOrganizerLogo(selectedLogoData);
+    renderOrganizerBranding(saved);
+
+    organizerData.eventSettings = saved;
+    updateOverview();
 }
 
 function cacheEventInformation(branding) {
@@ -403,6 +425,14 @@ settingsForm.addEventListener("submit", async (event) => {
     return;
   }
 
+const deadlineInput = document.getElementById("submission-deadline");
+
+if (!deadlineInput || !deadlineInput.value) {
+    status.textContent = "Please select a Project Submission Deadline.";
+    deadlineInput?.focus();
+    return;
+}
+
   if (eventSettingsSaving) return;
   eventSettingsRevision++;
 
@@ -435,7 +465,8 @@ settingsForm.addEventListener("submit", async (event) => {
 
     eventDescription:
       document.getElementById("event-description")
-        .value.trim()
+        .value.trim(),
+       submissionDeadline: new Date(deadlineInput.value).toISOString()
   };
 
   eventSettingsSaving = true;

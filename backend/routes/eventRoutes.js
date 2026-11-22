@@ -2,13 +2,9 @@
 const express = require("express");
 const router = express.Router();
 
-// Import Event Model
 const Event = require("../models/event");
 
-// =====================================
 // GET EVENT INFORMATION
-// =====================================
-
 router.get("/", async (req, res) => {
     try {
         const event = await Event.findOne();
@@ -35,12 +31,8 @@ router.get("/", async (req, res) => {
     }
 });
 
-// =====================================
 // SAVE EVENT INFORMATION
-// =====================================
-
-// Local development only.
-// Organizer authentication will be added later.
+// Local development only. Organizer authentication is still required.
 
 router.post("/", async (req, res) => {
     try {
@@ -55,10 +47,10 @@ router.post("/", async (req, res) => {
             eventDescription,
             maximumTeams,
             maximumMembers,
-            defaultProblemCapacity
+            defaultProblemCapacity,
+            submissionDeadline
         } = req.body;
 
-        // Validate required fields
         if (
             typeof eventName !== "string" ||
             !eventName.trim() ||
@@ -71,7 +63,7 @@ router.post("/", async (req, res) => {
             });
         }
 
-        // Validate logo if provided
+        // Validate logo
         if (
             logo !== undefined &&
             (
@@ -89,7 +81,6 @@ router.post("/", async (req, res) => {
             });
         }
 
-        // Prepare event information
         const eventData = {
             eventName: eventName.trim(),
             organization: organization.trim()
@@ -117,6 +108,7 @@ router.post("/", async (req, res) => {
             }
         }
 
+        // Validate capacities
         const capacities = {
             maximumTeams,
             maximumMembers,
@@ -136,7 +128,28 @@ router.post("/", async (req, res) => {
             }
         }
 
-        // Save one active event for the initial demo
+        // Validate submission deadline
+        if (submissionDeadline !== undefined) {
+            if (
+                submissionDeadline === null ||
+                submissionDeadline === ""
+            ) {
+                eventData.submissionDeadline = null;
+            } else {
+                const deadline = new Date(submissionDeadline);
+
+                if (isNaN(deadline.getTime())) {
+                    return res.status(400).json({
+                        success: false,
+                        message: "Invalid submission deadline"
+                    });
+                }
+
+                eventData.submissionDeadline = deadline;
+            }
+        }
+
+        // Save active event
         const event = await Event.findOneAndUpdate(
             {},
             { $set: eventData },
