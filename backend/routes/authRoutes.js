@@ -1,8 +1,11 @@
+
 const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const rateLimit = require("express-rate-limit");
 
 const User = require("../models/User");
+const requireOrganizer = require("../middleware/requireOrganizer");
 
 const router = express.Router();
 
@@ -11,12 +14,8 @@ const router = express.Router();
 // ====================================
 
 router.post("/register", async (req, res) => {
-
     try {
-
         const { name, email, password } = req.body;
-
-        // Check input fields
 
         if (
             typeof name !== "string" ||
@@ -46,8 +45,6 @@ router.post("/register", async (req, res) => {
             });
         }
 
-        // Check existing participant
-
         const existingUser = await User.findOne({
             email: cleanEmail
         });
@@ -59,14 +56,7 @@ router.post("/register", async (req, res) => {
             });
         }
 
-        // Hash password securely
-
-        const hashedPassword = await bcrypt.hash(
-            password,
-            12
-        );
-
-        // Save participant in MongoDB
+        const hashedPassword = await bcrypt.hash(password, 12);
 
         const user = await User.create({
             name: cleanName,
@@ -87,7 +77,6 @@ router.post("/register", async (req, res) => {
         });
 
     } catch (error) {
-
         if (error.code === 11000) {
             return res.status(409).json({
                 success: false,
@@ -101,9 +90,7 @@ router.post("/register", async (req, res) => {
             success: false,
             message: "Registration failed"
         });
-
     }
-
 });
 
 // ====================================
@@ -111,9 +98,7 @@ router.post("/register", async (req, res) => {
 // ====================================
 
 router.post("/login", async (req, res) => {
-
     try {
-
         const { email, password } = req.body;
 
         if (
@@ -126,8 +111,6 @@ router.post("/login", async (req, res) => {
             });
         }
 
-        // Find user in MongoDB
-
         const user = await User.findOne({
             email: email.trim().toLowerCase()
         }).select("+passwordHash");
@@ -138,8 +121,6 @@ router.post("/login", async (req, res) => {
                 message: "Invalid email or password"
             });
         }
-
-        // Verify hashed password
 
         const isMatch = await bcrypt.compare(
             password,
@@ -153,13 +134,9 @@ router.post("/login", async (req, res) => {
             });
         }
 
-        // JWT secret must be configured
-
         if (!process.env.JWT_SECRET) {
             throw new Error("JWT_SECRET is not configured");
         }
-
-        // Generate login token
 
         const token = jwt.sign(
             {
@@ -175,7 +152,7 @@ router.post("/login", async (req, res) => {
         res.json({
             success: true,
             message: "Login successful!",
-            token: token,
+            token,
             user: {
                 id: user._id,
                 name: user.name,
@@ -185,24 +162,20 @@ router.post("/login", async (req, res) => {
         });
 
     } catch (error) {
-
         console.error("Login Error:", error.message);
 
         res.status(500).json({
             success: false,
             message: "Login failed"
         });
-
     }
-
 });
 
- // ====================================
- // ORGANIZER LOGIN API
- // POST /api/auth/organizer/login
- // ====================================
+// ====================================
+// ORGANIZER LOGIN
+// ====================================
 
-const organizerLoginLimit = require("express-rate-limit")({
+const organizerLoginLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
     limit: 10,
     standardHeaders: "draft-7",
@@ -214,12 +187,9 @@ const organizerLoginLimit = require("express-rate-limit")({
 });
 
 router.post("/organizer/login", organizerLoginLimit, async (req, res) => {
-
     try {
-
         const { email, password } = req.body;
 
-        // Validate input
         if (
             typeof email !== "string" ||
             typeof password !== "string" ||
@@ -232,7 +202,6 @@ router.post("/organizer/login", organizerLoginLimit, async (req, res) => {
             });
         }
 
-        // Find Organizer in MongoDB
         const organizer = await User.findOne({
             email: email.trim().toLowerCase(),
             role: "organizer"
@@ -245,7 +214,6 @@ router.post("/organizer/login", organizerLoginLimit, async (req, res) => {
             });
         }
 
-        // Verify Password
         const passwordMatch = await bcrypt.compare(
             password,
             organizer.passwordHash
@@ -258,7 +226,10 @@ router.post("/organizer/login", organizerLoginLimit, async (req, res) => {
             });
         }
 
-        // Generate JWT Token
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET is not configured");
+        }
+
         const token = jwt.sign(
             {
                 id: organizer._id.toString(),
@@ -284,34 +255,24 @@ router.post("/organizer/login", organizerLoginLimit, async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error(
-            "Organizer Login Error:",
-            error.message
-        );
+        console.error("Organizer Login Error:", error.message);
 
         res.status(500).json({
             success: false,
             message: "Organizer Login Failed."
         });
-
     }
-
 });
 
-
-module.exports = router;
-
- // ====================================
- // VERIFY ORGANIZER LOGIN
- // GET /api/auth/organizer/me
- // ====================================
+// ====================================
+// VERIFY ORGANIZER LOGIN
+// GET /api/auth/organizer/me
+// ====================================
 
 router.get(
     "/organizer/me",
-    require("../middleware/requireOrganizer"),
+    requireOrganizer,
     (req, res) => {
-
         res.json({
             success: true,
             message: "Organizer Authenticated Successfully!",
@@ -322,6 +283,105 @@ router.get(
                 role: req.organizer.role
             }
         });
-
     }
 );
+
+// ====================================
+// JUDGE LOGIN
+// POST /api/auth/judge/login
+// ====================================
+
+const judgeLoginLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    standardHeaders: "draft-7",
+    legacyHeaders: false,
+    message: {
+        success: false,
+        message: "Too many login attempts. Try again later."
+    }
+});
+
+router.post("/judge/login", judgeLoginLimit, async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        if (
+            typeof email !== "string" ||
+            typeof password !== "string" ||
+            !email.trim() ||
+            !password
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Email and Password are required."
+            });
+        }
+
+        const judge = await User.findOne({
+            email: email.trim().toLowerCase(),
+            role: "judge"
+        }).select("+passwordHash");
+
+        if (!judge) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid Email or Password."
+            });
+        }
+
+        const passwordMatch = await bcrypt.compare(
+            password,
+            judge.passwordHash
+        );
+
+        if (!passwordMatch) {
+            return res.status(401).json({
+                success: false,
+                message: "Invalid Email or Password."
+            });
+        }
+
+        if (!process.env.JWT_SECRET) {
+            throw new Error("JWT_SECRET is not configured");
+        }
+
+        const token = jwt.sign(
+            {
+                id: judge._id.toString(),
+                role: "judge"
+            },
+            process.env.JWT_SECRET,
+            {
+                expiresIn: "2h",
+                algorithm: "HS256"
+            }
+        );
+
+        res.json({
+            success: true,
+            message: "Judge Login Successful!",
+            token,
+            judge: {
+                id: judge._id,
+                name: judge.name,
+                email: judge.email,
+                role: judge.role
+            }
+        });
+
+    } catch (error) {
+        console.error("Judge Login Error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Judge Login Failed."
+        });
+    }
+});
+
+// ====================================
+// EXPORT ROUTER
+// ====================================
+
+module.exports = router;

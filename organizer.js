@@ -268,11 +268,22 @@ async function loadSavedEventInformation() {
     console.warn("Could not load cached event information.", error);
   }
   try {
-    const response = await fetch(eventApiUrl, {
-      method: "GET",
-      cache: "no-store",
-      signal: AbortSignal.timeout(10000)
-    });
+    const token = sessionStorage.getItem("hackarenaOrganizerToken");
+
+if (!token) {
+  window.location.replace("./index.html");
+  return;
+}
+
+const response = await fetch(eventApiUrl, {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + token
+  },
+  body: JSON.stringify(branding),
+  signal: AbortSignal.timeout(10000)
+});
     if (!response.ok) {
       throw new Error(`Event load failed (HTTP ${response.status}).`);
     }
@@ -1264,8 +1275,7 @@ async function loadJudges() {
 
     try {
 
-        const token = localStorage.getItem("hackarenaOrganizerToken");
-
+       const token = sessionStorage.getItem("hackarenaOrganizerToken");
         const response = await fetch(
             `${judgeApiUrl}/invitations`,
             {
@@ -1281,12 +1291,12 @@ async function loadJudges() {
             throw new Error(data.message || "Unable to load judges.");
         }
 
-        organizerData.judges = data.invitations.map(invitation => ({
-            name: invitation.name,
-            email: invitation.email,
-            invitationStatus: invitation.status
-        }));
-
+       organizerData.judges = data.invitations.map(invitation => ({
+    id: invitation._id,
+    name: invitation.name,
+    email: invitation.email,
+    invitationStatus: invitation.status
+}));
         renderJudges();
 
     } catch (error) {
@@ -1313,7 +1323,7 @@ judgeForm.addEventListener("submit", async (event) => {
     const name = document.getElementById("judge-name").value.trim();
     const email = document.getElementById("judge-email").value.trim();
 
-    const token = localStorage.getItem("hackarenaOrganizerToken");
+const token = sessionStorage.getItem("hackarenaOrganizerToken");
 
     try {
 
@@ -1353,8 +1363,8 @@ judgeForm.addEventListener("submit", async (event) => {
 
 });
 
-function renderJudges() {
 
+function renderJudges() {
     const list = document.getElementById("judges-list");
     const empty = document.getElementById("judges-empty");
 
@@ -1363,7 +1373,6 @@ function renderJudges() {
     empty.hidden = organizerData.judges.length > 0;
 
     organizerData.judges.forEach((judge) => {
-
         const row = document.createElement("tr");
 
         [
@@ -1371,21 +1380,60 @@ function renderJudges() {
             judge.email,
             judge.invitationStatus
         ].forEach((value) => {
-
             const cell = document.createElement("td");
-
             cell.textContent = String(value ?? "—");
-
             row.append(cell);
-
         });
 
+        const actionCell = document.createElement("td");
+
+        const deleteButton = document.createElement("button");
+        deleteButton.type = "button";
+        deleteButton.textContent = "Delete";
+        deleteButton.className = "secondary-button";
+
+        deleteButton.addEventListener("click", async () => {
+            const confirmed = window.confirm(
+                "Are you sure you want to delete this judge invitation?"
+            );
+
+            if (!confirmed) return;
+
+            const token = sessionStorage.getItem("hackarenaOrganizerToken");
+
+            deleteButton.disabled = true;
+
+            try {
+                const response = await fetch(
+                    `${judgeApiUrl}/invitations/${judge.id}`,
+                    {
+                        method: "DELETE",
+                        headers: {
+                            "Authorization": `Bearer ${token}`
+                        }
+                    }
+                );
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || "Unable to delete invitation.");
+                }
+
+                await loadJudges();
+
+            } catch (error) {
+                alert(error.message);
+                deleteButton.disabled = false;
+            }
+        });
+
+        actionCell.append(deleteButton);
+        row.append(actionCell);
+
         list.append(row);
-
     });
-
 }
-
 
 // ---------------------------------
 // TIMER VALIDATION
@@ -1676,7 +1724,7 @@ function updateRubricTotal() {
       input.value === "" ||
       !Number.isFinite(number) ||
       number <= 0 ||
-      number > 100
+      number > 10000
     ) {
 
       valid = false;
@@ -1691,7 +1739,7 @@ function updateRubricTotal() {
   }
 
   rubricTotal.textContent = valid
-    ? `${Number(total.toFixed(2))} / 100`
+    ? `${Number(total.toFixed(2))} marks`
     : "Check marks";
 
   return {
@@ -1750,7 +1798,7 @@ function addCriterion(name = "", maximum = "") {
   marksInput.className = "criterion-marks";
   marksInput.type = "number";
   marksInput.min = "0";
-  marksInput.max = "100";
+  marksInput.max = "10000";
   marksInput.step = "any";
   marksInput.value = maximum;
   marksInput.required = true;
@@ -1810,44 +1858,146 @@ document.getElementById("add-criterion")
     addCriterion().focus();
   });
 
+function loadCriteriaInDashboard(savedCriteria) {
+
+  if (!Array.isArray(savedCriteria) || savedCriteria.length === 0) {
+    return;
+  }
+
+  criteriaList.replaceChildren();
+
+  savedCriteria.forEach((criterion) => {
+    addCriterion(criterion.name, criterion.maximum);
+  });
+
+  updateRubricTotal();
+}
+
 // ---------------------------------
 // CRITERIA FORM
 // ---------------------------------
 
 document.getElementById("criteria-form")
-  .addEventListener("submit", (event) => {
+  .addEventListener("submit", async (event) => {
 
     event.preventDefault();
 
-    const form =
-      event.currentTarget;
+    const form = event.currentTarget;
 
     if (!validateForm(form)) {
       return;
     }
 
-    const result =
-      updateRubricTotal();
+    const status = document.getElementById("criteria-status");
+    const token = sessionStorage.getItem("hackarenaOrganizerToken");
 
-    const status =
-      document.getElementById("criteria-status");
-
-    if (
-      !result.valid ||
-      Math.abs(result.total - 100) > 0.000001
-    ) {
-
-      status.textContent =
-        "Each criterion must have positive marks, " +
-        "and the total must be exactly 100.";
-
+    if (!token) {
+      window.location.replace("./index.html");
       return;
     }
 
-    status.textContent =
-      "The rubric totals 100 marks. " +
-      "No changes have been saved or applied " +
-      "to the Judge Dashboard.";
+    const names = Array.from(
+      criteriaList.querySelectorAll(".criterion-name")
+    );
+
+    const marks = Array.from(
+      criteriaList.querySelectorAll(".criterion-marks")
+    );
+
+    const evaluationCriteria = [];
+    const usedNames = new Set();
+
+    for (let i = 0; i < names.length; i++) {
+
+      const name = names[i].value.trim();
+      const maximum = Number(marks[i].value);
+      const normalizedName = name.toLowerCase();
+
+      if (
+        !name ||
+        name.length > 100 ||
+        !Number.isFinite(maximum) ||
+        maximum <= 0 ||
+        maximum > 10000
+      ) {
+        status.textContent = "Please enter valid criteria and marks.";
+        return;
+      }
+
+      if (usedNames.has(normalizedName)) {
+        status.textContent = "Each criterion must have a unique name.";
+        return;
+      }
+
+      usedNames.add(normalizedName);
+
+      evaluationCriteria.push({
+        name,
+        maximum
+      });
+    }
+
+    if (evaluationCriteria.length === 0 || evaluationCriteria.length > 30) {
+      status.textContent = "Add between 1 and 30 judging criteria.";
+      return;
+    }
+
+    const submitButton = form.querySelector('button[type="submit"]');
+
+    if (submitButton) {
+      submitButton.disabled = true;
+    }
+
+    status.textContent = "Saving judging criteria...";
+
+    try {
+
+      const response = await fetch(
+        eventApiUrl + "/criteria",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + token
+          },
+          body: JSON.stringify({
+            evaluationCriteria
+          })
+        }
+      );
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Could not save judging criteria."
+        );
+      }
+
+      organizerData.eventSettings = {
+        ...(organizerData.eventSettings || {}),
+        evaluationCriteria: result.evaluationCriteria || evaluationCriteria
+      };
+
+      cacheEventInformation(organizerData.eventSettings);
+
+      status.textContent =
+        "Judging criteria saved successfully! Total: " +
+        (result.totalMarks ??
+          evaluationCriteria.reduce((sum, item) => sum + item.maximum, 0)) +
+        " marks.";
+
+    } catch (error) {
+
+      console.error("Criteria Save Error:", error);
+      status.textContent = error.message;
+
+    } finally {
+
+      if (submitButton) {
+        submitButton.disabled = false;
+      }
+    }
   });
 
 // ---------------------------------
@@ -2043,21 +2193,28 @@ async function loadProblems() {
     }
 }
 
-function initializeOrganizer() {
+async function initializeOrganizer() {
 
-  showPage("overview");
+    showPage("overview");
 
-  loadTeams();
-  renderProblems();
-  loadProblems();
-  loadJudges();
-  renderJudges();
-  renderSubmissions();
+await loadSavedEventInformation();
 
-  updateSubmissionStats(null);
-  updateAnalytics(null);
-  updateOverview();
+if (organizerData.eventSettings?.evaluationCriteria) {
+  loadCriteriaInDashboard(
+    organizerData.eventSettings.evaluationCriteria
+  );
 }
+    loadTeams();
+    renderProblems();
+    loadProblems();
+    await loadJudges();
+    renderSubmissions();
+
+    updateSubmissionStats(null);
+    updateAnalytics(null);
+    updateOverview();
+}
+
 
  // ====================================
  // ORGANIZER LOGIN VERIFICATION
@@ -2130,10 +2287,17 @@ async function verifyOrganizerLogin() {
         }
 
         // Login successfully verified
-        initializeOrganizer();
+await initializeOrganizer();
 
-        // Show dashboard
-        document.documentElement.style.visibility = "visible";
+// Hide frontend preview banner
+const previewBanner = document.querySelector(".preview-banner");
+
+if (previewBanner) {
+    previewBanner.hidden = true;
+}
+
+// Show dashboard
+document.documentElement.style.visibility = "visible";
 
     } catch (error) {
 

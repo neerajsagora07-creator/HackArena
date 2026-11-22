@@ -1,0 +1,246 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accept Judge Invitation | HackArena</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f3f5fb;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 440px;
+            background: white;
+            padding: 35px;
+            border-radius: 16px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.08);
+        }
+
+        .logo {
+            font-size: 27px;
+            font-weight: bold;
+            color: #3157c8;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 25px;
+            color: #202b45;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            color: #68738a;
+            text-align: center;
+            line-height: 1.6;
+            margin-bottom: 28px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #303b52;
+        }
+
+        input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #d8deea;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 15px;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #3157c8;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            background: #3157c8;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #2445a8;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 18px;
+            text-align: center;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .error {
+            color: #d12d2d;
+        }
+
+        .success {
+            color: #16834b;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="logo">HackArena</div>
+
+        <h1>Accept Invitation</h1>
+
+        <p class="description">
+            Welcome to HackArena!
+            Create your password to activate your Judge account.
+        </p>
+
+        <form id="accept-form">
+
+            <label for="password">Create Password</label>
+            <input
+                type="password"
+                id="password"
+                minlength="8"
+                placeholder="Enter at least 8 characters"
+                required
+            >
+
+            <label for="confirm-password">Confirm Password</label>
+            <input
+                type="password"
+                id="confirm-password"
+                minlength="8"
+                placeholder="Re-enter your password"
+                required
+            >
+
+            <button type="submit" id="accept-button">
+                Accept Invitation
+            </button>
+
+            <p id="accept-status" class="status" role="status"></p>
+
+        </form>
+
+    </div>
+
+    <script>
+        const API_URL = "http://127.0.0.1:5000/api/judges";
+
+        const token = new URLSearchParams(
+            window.location.search
+        ).get("token");
+        console.log("Current URL:", window.location.href);
+console.log("Token received:", token ? "YES" : "NO");
+
+        const form = document.getElementById("accept-form");
+        const status = document.getElementById("accept-status");
+        const button = document.getElementById("accept-button");
+
+        if (!token) {
+            status.textContent = "Invitation token is missing.";
+            status.className = "status error";
+            button.disabled = true;
+        }
+
+        form.addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const password = document.getElementById("password").value;
+            const confirmPassword = document.getElementById("confirm-password").value;
+
+            if (!token) {
+                status.textContent = "Invalid invitation link.";
+                status.className = "status error";
+                return;
+            }
+
+            if (password.length < 8) {
+                status.textContent = "Password must contain at least 8 characters.";
+                status.className = "status error";
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                status.textContent = "Passwords do not match.";
+                status.className = "status error";
+                return;
+            }
+
+            try {
+                button.disabled = true;
+                button.textContent = "Creating Account...";
+
+                const response = await fetch(`${API_URL}/accept`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        token: token,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || "Unable to accept invitation.");
+                }
+
+                status.textContent = data.message;
+                status.className = "status success";
+
+                form.reset();
+
+                button.textContent = "Account Activated";
+
+                window.history.replaceState(
+                    {},
+                    document.title,
+                    window.location.pathname
+                );
+
+            } catch (error) {
+                status.textContent = error.message;
+                status.className = "status error";
+
+                button.disabled = false;
+                button.textContent = "Accept Invitation";
+            }
+        });
+    </script>
+
+</body>
+</html>

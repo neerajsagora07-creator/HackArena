@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 
 const Event = require("../models/event");
+const requireOrganizer = require("../middleware/requireOrganizer");
 
 // GET EVENT INFORMATION
 router.get("/", async (req, res) => {
@@ -32,9 +33,7 @@ router.get("/", async (req, res) => {
 });
 
 // SAVE EVENT INFORMATION
-// Local development only. Organizer authentication is still required.
-
-router.post("/", async (req, res) => {
+router.post("/", requireOrganizer, async (req, res) => {
     try {
         const {
             eventName,
@@ -173,6 +172,95 @@ router.post("/", async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Failed to save event"
+        });
+    }
+});
+
+// SAVE DYNAMIC EVALUATION CRITERIA
+router.put("/criteria", requireOrganizer, async (req, res) => {
+    try {
+        const { evaluationCriteria } = req.body;
+
+        if (
+            !Array.isArray(evaluationCriteria) ||
+            evaluationCriteria.length === 0 ||
+            evaluationCriteria.length > 30
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Add between 1 and 30 evaluation criteria."
+            });
+        }
+
+        const names = new Set();
+        let total = 0;
+
+        for (const criterion of evaluationCriteria) {
+            if (
+                !criterion ||
+                typeof criterion.name !== "string" ||
+                !criterion.name.trim() ||
+                criterion.name.trim().length > 100 ||
+                typeof criterion.maximum !== "number" ||
+                !Number.isFinite(criterion.maximum) ||
+                criterion.maximum <= 0 ||
+                criterion.maximum > 10000
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Each criterion needs a valid name and maximum marks."
+                });
+            }
+
+            const normalizedName = criterion.name.trim().toLowerCase();
+
+            if (names.has(normalizedName)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Criterion names must be unique."
+                });
+            }
+
+            names.add(normalizedName);
+            total += criterion.maximum;
+        }
+
+        const event = await Event.findOneAndUpdate(
+            {},
+            {
+                $set: {
+                    evaluationCriteria: evaluationCriteria.map(item => ({
+                        name: item.name.trim(),
+                        maximum: item.maximum
+                    }))
+                }
+            },
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: "Create and save Event Settings first."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Evaluation criteria saved successfully.",
+            evaluationCriteria: event.evaluationCriteria,
+            totalMarks: total
+        });
+
+    } catch (error) {
+        console.error("Criteria Save Error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Failed to save evaluation criteria."
         });
     }
 });

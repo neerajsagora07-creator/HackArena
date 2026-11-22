@@ -51,8 +51,30 @@ const eventSchema = new mongoose.Schema({
         type: Number,
         default: 3,
         min: 1
+    },
+    evaluationCriteria: {
+        type: [{
+            name: {
+                type: String,
+                required: true,
+                trim: true,
+                maxlength: 100
+            },
+            maximum: {
+                type: Number,
+                required: true,
+                min: 0.01,
+                max: 10000
+            }
+        }],
+        default: [
+            { name: "Innovation", maximum: 25 },
+            { name: "Technical Implementation", maximum: 25 },
+            { name: "Impact", maximum: 20 },
+            { name: "UI/UX", maximum: 15 },
+            { name: "Presentation", maximum: 15 }
+        ]
     }
-
 }, {
     timestamps: true
 });

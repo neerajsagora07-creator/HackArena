@@ -276,14 +276,134 @@ document.querySelectorAll(".login-form").forEach((form) => {
         // JUDGE LOGIN (COMING LATER)
         // ====================================
 
-        if (role === "Judge") {
+       if (role === "Judge") {
 
-            status.textContent =
-                "Judge login backend is not connected yet.";
+    const email = document.getElementById("judge-email").value.trim().toLowerCase();
+    const password = document.getElementById("judge-password").value;
 
-            return;
+    const loginButton = form.querySelector('button[type="submit"]');
+
+    loginButton.disabled = true;
+    status.textContent = "Checking Judge Login...";
+
+    try {
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/auth/judge/login",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ email, password })
+            }
+        );
+
+        const result = await response.json();
+
+        if (
+            !response.ok ||
+            !result.success ||
+            !result.token ||
+            result.judge?.role !== "judge"
+        ) {
+            throw new Error(result.message || "Judge Login Failed.");
         }
 
+        sessionStorage.setItem("hackarenaJudgeToken", result.token);
+        sessionStorage.setItem("hackarenaJudge", JSON.stringify(result.judge));
+
+        status.textContent = "Judge Login Successful!";
+        window.location.href = "./judge.html";
+
+    } catch (error) {
+        status.textContent = error instanceof TypeError
+            ? "Cannot connect to backend. Check server."
+            : error.message;
+
+    } finally {
+        loginButton.disabled = false;
+    }
+
+    return;
+}
+// ====================================
+// JUDGE LOGIN
+// ====================================
+
+if (role === "Judge") {
+
+    const email = document.getElementById(
+        "judge-email"
+    ).value.trim().toLowerCase();
+
+    const password = document.getElementById(
+        "judge-password"
+    ).value;
+
+    const loginButton = form.querySelector(
+        'button[type="submit"]'
+    );
+
+    loginButton.disabled = true;
+    status.textContent = "Checking Judge Login...";
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/auth/judge/login",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    email,
+                    password
+                })
+            }
+        );
+
+        const result = await response.json();
+
+        if (
+            !response.ok ||
+            !result.success ||
+            !result.token ||
+            result.judge?.role !== "judge"
+        ) {
+            throw new Error(
+                result.message || "Judge Login Failed."
+            );
+        }
+
+        sessionStorage.setItem(
+            "hackarenaJudgeToken",
+            result.token
+        );
+
+        sessionStorage.setItem(
+            "hackarenaJudge",
+            JSON.stringify(result.judge)
+        );
+
+        status.textContent = "Judge Login Successful!";
+
+        window.location.href = "./judge.html";
+
+    } catch (error) {
+
+        status.textContent =
+            error instanceof TypeError
+                ? "Cannot connect to backend. Check server."
+                : error.message;
+
+    } finally {
+
+        loginButton.disabled = false;
+    }
+
+    return;
+}
 
         const teamId = document.getElementById("team-id")
             .value.trim().toUpperCase();

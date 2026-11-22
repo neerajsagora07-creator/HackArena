@@ -1,6 +1,7 @@
 
 const express = require("express");
 const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 
 const JudgeInvitation = require("../models/JudgeInvitation");
@@ -63,6 +64,7 @@ router.post("/invite", requireOrganizer, async (req, res) => {
         }
 
         const token = crypto.randomBytes(32).toString("hex");
+
         const tokenHash = crypto
             .createHash("sha256")
             .update(token)
@@ -130,6 +132,117 @@ router.get("/invitations", requireOrganizer, async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Unable to load judge invitations."
+        });
+    }
+});
+
+// ACCEPT JUDGE INVITATION
+router.post("/accept", async (req, res) => {
+    try {
+        const { token, password } = req.body;
+
+        if (
+            typeof token !== "string" ||
+            typeof password !== "string" ||
+            password.length < 8
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Valid invitation token and password of at least 8 characters are required."
+            });
+        }
+
+        const tokenHash = crypto
+            .createHash("sha256")
+            .update(token)
+            .digest("hex");
+
+        const invitation = await JudgeInvitation.findOne({
+            tokenHash,
+            status: "pending"
+        });
+
+        if (!invitation) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid or already used invitation link."
+            });
+        }
+
+        if (invitation.expiresAt <= new Date()) {
+            invitation.status = "expired";
+            await invitation.save();
+
+            return res.status(410).json({
+                success: false,
+                message: "This invitation has expired. Please contact the organizer."
+            });
+        }
+
+        const existingUser = await User.findOne({
+            email: invitation.email
+        });
+
+        if (existingUser) {
+            return res.status(409).json({
+                success: false,
+                message: "An account with this email already exists."
+            });
+        }
+
+        const passwordHash = await bcrypt.hash(password, 12);
+
+        await User.create({
+            name: invitation.name,
+            email: invitation.email,
+            passwordHash,
+            role: "judge"
+        });
+
+        invitation.status = "accepted";
+        await invitation.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Judge account created successfully. You can now log in."
+        });
+
+    } catch (error) {
+        console.error("Judge Acceptance Error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to accept judge invitation."
+        });
+    }
+});
+
+// DELETE JUDGE INVITATION
+router.delete("/invitations/:id", requireOrganizer, async (req, res) => {
+    try {
+        const invitation = await JudgeInvitation.findOneAndDelete({
+            _id: req.params.id,
+            invitedBy: req.organizer._id
+        });
+
+        if (!invitation) {
+            return res.status(404).json({
+                success: false,
+                message: "Judge invitation not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Judge invitation deleted successfully."
+        });
+
+    } catch (error) {
+        console.error("Judge Invitation Delete Error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to delete judge invitation."
         });
     }
 });

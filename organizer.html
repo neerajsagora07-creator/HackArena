@@ -308,31 +308,27 @@
 
           </div>
 
-         
-<div class="field">
-    <label for="event-description">Event Description</label>
-    <textarea
-        id="event-description"
-        name="eventDescription"
-    ></textarea>
-</div>
+          <div class="field">
+            <label for="event-description">Event Description</label>
+            <textarea
+                id="event-description"
+                name="eventDescription"
+                rows="4"
+                placeholder="Short description of the hackathon"
+            ></textarea>
+          </div>
 
-<div class="field">
-    <label for="submission-deadline">Project Submission Deadline</label>
-    <input
-        id="submission-deadline"
-        name="submissionDeadline"
-        type="datetime-local"
-        required
-    >
-    <p class="help">
-        Participants must submit their projects before this deadline.
-    </p>
-</div>
-
-            <textarea id="event-description" name="eventDescription"
-                      rows="4"
-                      placeholder="Short description of the hackathon"></textarea>
+          <div class="field">
+            <label for="submission-deadline">Project Submission Deadline</label>
+            <input
+                id="submission-deadline"
+                name="submissionDeadline"
+                type="datetime-local"
+                required
+            >
+            <p class="help">
+              Participants must submit their projects before this deadline.
+            </p>
           </div>
 
           <div class="form-grid three-columns">
@@ -549,7 +545,6 @@
             </table>
 
         </div>
-        </table>
 
     </div>
 
@@ -561,9 +556,6 @@
     >
         Confirm Import & Publish
     </button>
-
-
-    </div>
 
 </article>
 
@@ -671,6 +663,7 @@
                 <th>Judge Name</th>
                 <th>Email</th>
                 <th>Invitation Status</th>
+                <th>Actions</th>
               </tr>
             </thead>
 
