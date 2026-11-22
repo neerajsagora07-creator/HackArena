@@ -1248,63 +1248,144 @@ confirmPdfImportButton.addEventListener("click", async () => {
 
  
 
-// ---------------------------------
+
+ // ---------------------------------
 // JUDGE INVITATIONS
 // ---------------------------------
 
-const judgeForm =
-  document.getElementById("judge-form");
+const judgeApiUrl = "http://127.0.0.1:5000/api/judges";
 
-judgeForm.addEventListener("submit", (event) => {
+const judgeForm = document.getElementById("judge-form");
 
-  event.preventDefault();
+async function loadJudges() {
 
-  if (!validateForm(judgeForm)) {
-    return;
-  }
+    const list = document.getElementById("judges-list");
+    const empty = document.getElementById("judges-empty");
 
-  document.getElementById("judge-status")
-    .textContent =
-    "Judge information checked. " +
-    "No account has been created and " +
-    "no invitation email has been sent. " +
-    "The backend will handle secure invitations.";
+    try {
+
+        const token = localStorage.getItem("hackarenaOrganizerToken");
+
+        const response = await fetch(
+            `${judgeApiUrl}/invitations`,
+            {
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Unable to load judges.");
+        }
+
+        organizerData.judges = data.invitations.map(invitation => ({
+            name: invitation.name,
+            email: invitation.email,
+            invitationStatus: invitation.status
+        }));
+
+        renderJudges();
+
+    } catch (error) {
+
+        console.error("Judge Loading Error:", error);
+
+        empty.hidden = false;
+        empty.querySelector("p").textContent =
+            error.message;
+
+    }
+}
+
+judgeForm.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    if (!validateForm(judgeForm)) {
+        return;
+    }
+
+    const status = document.getElementById("judge-status");
+
+    const name = document.getElementById("judge-name").value.trim();
+    const email = document.getElementById("judge-email").value.trim();
+
+    const token = localStorage.getItem("hackarenaOrganizerToken");
+
+    try {
+
+        status.textContent = "Sending invitation...";
+
+        const response = await fetch(`${judgeApiUrl}/invite`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                name: name,
+                email: email
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || "Invitation failed.");
+        }
+
+        status.textContent = data.message;
+
+        judgeForm.reset();
+
+        await loadJudges();
+
+    } catch (error) {
+
+        status.textContent = error.message;
+
+        console.error("Judge Invitation Error:", error);
+
+    }
+
 });
 
 function renderJudges() {
 
-  const list =
-    document.getElementById("judges-list");
+    const list = document.getElementById("judges-list");
+    const empty = document.getElementById("judges-empty");
 
-  const empty =
-    document.getElementById("judges-empty");
+    list.replaceChildren();
 
-  list.replaceChildren();
+    empty.hidden = organizerData.judges.length > 0;
 
-  empty.hidden =
-    organizerData.judges.length > 0;
+    organizerData.judges.forEach((judge) => {
 
-  organizerData.judges.forEach((judge) => {
+        const row = document.createElement("tr");
 
-    const row = document.createElement("tr");
+        [
+            judge.name,
+            judge.email,
+            judge.invitationStatus
+        ].forEach((value) => {
 
-    [
-      judge.name,
-      judge.email,
-      judge.invitationStatus
-    ].forEach((value) => {
+            const cell = document.createElement("td");
 
-      const cell = document.createElement("td");
+            cell.textContent = String(value ?? "—");
 
-      cell.textContent =
-        String(value ?? "—");
+            row.append(cell);
 
-      row.append(cell);
+        });
+
+        list.append(row);
+
     });
 
-    list.append(row);
-  });
 }
+
 
 // ---------------------------------
 // TIMER VALIDATION
@@ -1969,6 +2050,7 @@ function initializeOrganizer() {
   loadTeams();
   renderProblems();
   loadProblems();
+  loadJudges();
   renderJudges();
   renderSubmissions();
 

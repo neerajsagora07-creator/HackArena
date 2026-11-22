@@ -19,6 +19,7 @@ const authRoutes = require("./routes/authRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const problemRoutes = require("./routes/problemRoutes");
 const submissionRoutes = require("./routes/submissionRoutes");
+const judgeRoutes = require("./routes/judgeRoutes");
 
 // HOME ROUTE
 
@@ -60,6 +61,10 @@ app.use("/api/problems", problemRoutes);
 
 app.use("/api/submissions", submissionRoutes);
 
+// JUDGE API
+
+app.use("/api/judges", judgeRoutes);
+
 // MONGODB CONNECTION
 
 async function startServer() {
@@ -96,6 +101,7 @@ async function startServer() {
             console.log("Team API: /api/teams");
             console.log("Problem API: /api/problems");
             console.log("Submission API: /api/submissions");
+            console.log("Judge API: /api/judges");
 
         });
 
