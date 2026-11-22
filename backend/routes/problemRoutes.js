@@ -4,7 +4,7 @@ const mongoose = require("mongoose");
 const multer = require("multer");
 const pdfParse = require("pdf-parse");
 
-const Problem = require("../models/Problem");
+const Problem = require("../models/problem");
 const Team = require("../models/Team");
 
 const requireOrganizer = require("../middleware/requireOrganizer");

@@ -77,4 +77,4 @@ const problemSchema = new mongoose.Schema({
     timestamps: true
 });
 
-module.exports = mongoose.model("Problem", problemSchema);
+module.exports = mongoose.models.Problem || mongoose.model("Problem", problemSchema);

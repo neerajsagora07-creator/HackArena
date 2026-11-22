@@ -1,8 +1,6 @@
 
 const mongoose = require("mongoose");
 
-// PARTICIPANT USER SCHEMA
-
 const userSchema = new mongoose.Schema({
 
     name: {
@@ -35,8 +33,7 @@ const userSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// CREATE USER MODEL
-
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;
+

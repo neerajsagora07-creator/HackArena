@@ -436,128 +436,69 @@
 
       </section>
 
-      <!-- PROJECT SUBMISSION -->
-      <section id="submission" class="page" hidden>
 
-        <article class="panel">
+<!-- PROJECT SUBMISSION -->
+<section id="submission" class="page" hidden>
+  <article class="panel">
 
-          <span class="eyebrow">
-            READY FOR YOUR SHOWCASE?
-          </span>
+    <span class="eyebrow">READY FOR YOUR SHOWCASE?</span>
+    <h2>Project Submission</h2>
 
-          <h2>Project Submission</h2>
+    <p>Your selected problem will be linked from your registered team record.</p>
 
-          <p>
-            Your selected problem will be linked
-            from your registered team record.
-          </p>
+    <div class="submission-info">
+      <strong>Official Submission Status</strong>
+      <span id="submission-detail-status">Not loaded</span>
+      <p id="submission-deadline-message">Deadline information will appear here.</p>
+    </div>
 
-          <div class="submission-info">
+    <form id="submission-form">
 
-            <strong>Official Submission Status</strong>
+      <div class="field">
+        <label for="project-name">Project Name</label>
+        <input id="project-name" name="projectTitle" type="text" maxlength="150">
+      </div>
 
-            <span id="submission-detail-status">
-              Not loaded
-            </span>
+      <div class="field">
+        <label for="project-description">Project Description</label>
+        <textarea id="project-description" name="description" rows="5"></textarea>
+      </div>
 
-            <p id="submission-deadline-message">
-              Submission deadline information
-              is not connected yet.
-            </p>
+      <div class="field">
+        <label for="technologies">Technologies Used</label>
+        <input id="technologies" name="technologies" type="text"
+          placeholder="HTML, CSS, JavaScript, Node.js">
+      </div>
 
-          </div>
+      <div class="field">
+        <label for="github-link">GitHub Repository</label>
+        <input id="github-link" name="githubUrl" type="url">
+      </div>
 
-          <form id="submission-form">
+      <div class="field">
+        <label for="demo-link">Live Demo Link</label>
+        <input id="demo-link" name="liveDemoUrl" type="url">
+      </div>
 
-            <div class="field">
+      <div class="field">
+        <label for="presentation">Project Presentation</label>
+        <input id="presentation" name="presentation" type="file"
+          accept=".pdf,.ppt,.pptx">
+        <p id="file-status">PDF, PPT or PPTX. Maximum 10 MB.</p>
+      </div>
 
-              <label for="project-name">
-                Project name
-              </label>
+      <div class="action-row">
+        <button id="save-draft" type="button" class="button secondary">Save Draft</button>
+        <button id="check-readiness" type="button" class="button secondary">Check Readiness</button>
+        <button id="final-submit" type="submit" class="button">Final Submission</button>
+      </div>
 
-              <input id="project-name"
-                     name="projectName"
-                     type="text"
-                     placeholder="Enter your project name"
-                     required>
-            </div>
+      <p id="readiness-result" role="status"></p>
 
-            <div class="form-grid">
+    </form>
+  </article>
+</section>
 
-              <div class="field">
-                <label for="github-link">
-                  GitHub repository link
-                </label>
-
-                <input id="github-link"
-                       name="githubLink"
-                       type="url"
-                       placeholder="https://github.com/..."
-                       required>
-              </div>
-
-              <div class="field">
-                <label for="demo-link">
-                  Demo link
-                </label>
-
-                <input id="demo-link"
-                       name="demoLink"
-                       type="url"
-                       placeholder="https://..."
-                       required>
-              </div>
-
-            </div>
-
-            <div class="field">
-
-              <label for="presentation">
-                Project presentation / PPT
-              </label>
-
-              <input id="presentation"
-                     name="presentation"
-                     type="file"
-                     required>
-
-              <p id="file-status" class="help">
-                No file selected. Allowed formats
-                and maximum size are not finalized.
-              </p>
-
-            </div>
-
-            <p class="help">
-              Selected files stay on your device
-              until backend upload is implemented.
-            </p>
-
-            <div class="action-row">
-
-              <button id="check-readiness"
-                      class="button secondary"
-                      type="button">
-                Check readiness
-              </button>
-
-              <button id="final-submit"
-                      class="button"
-                      type="submit">
-                Final submission
-              </button>
-
-            </div>
-
-            <div id="readiness-result"
-                 class="status"
-                 role="status"></div>
-
-          </form>
-
-        </article>
-
-      </section>
 
       <!-- ANNOUNCEMENTS AND NOTIFICATIONS -->
       <section id="updates" class="page" hidden>

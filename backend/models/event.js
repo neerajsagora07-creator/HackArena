@@ -5,12 +5,14 @@ const eventSchema = new mongoose.Schema({
 
     eventName: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
 
     organization: {
         type: String,
-        required: true
+        required: true,
+        trim: true
     },
 
     logo: {
@@ -19,26 +21,40 @@ const eventSchema = new mongoose.Schema({
     },
 
     eventDate: String,
+
     eventEndDate: String,
+
     eventTime: String,
+
     eventVenue: String,
+
     eventDescription: String,
+
+    submissionDeadline: {
+        type: Date,
+        default: null
+    },
 
     maximumTeams: {
         type: Number,
-        default: 60
+        default: 60,
+        min: 1
     },
 
     maximumMembers: {
         type: Number,
-        default: 4
+        default: 4,
+        min: 1
     },
 
     defaultProblemCapacity: {
         type: Number,
-        default: 3
+        default: 3,
+        min: 1
     }
 
-}, { timestamps: true });
+}, {
+    timestamps: true
+});
 
 module.exports = mongoose.model("Event", eventSchema);

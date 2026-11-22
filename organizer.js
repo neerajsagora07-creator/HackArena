@@ -208,6 +208,7 @@ function applyEventInformation(saved) {
     "maximum-teams": "maximumTeams",
     "maximum-members": "maximumMembers",
     "default-problem-capacity": "defaultProblemCapacity"
+    
   };
   Object.entries(values).forEach(([id, key]) => {
     if (saved[key] !== undefined && saved[key] !== null) {

@@ -7,33 +7,26 @@ require("dotenv").config();
 
 const app = express();
 
-// ====================================
 // MIDDLEWARE
-// ====================================
 
 app.use(cors());
 app.use(express.json({ limit: "2mb" }));
 
-// ====================================
 // IMPORT ROUTES
-// ====================================
 
 const eventRoutes = require("./routes/eventRoutes");
 const authRoutes = require("./routes/authRoutes");
 const teamRoutes = require("./routes/teamRoutes");
 const problemRoutes = require("./routes/problemRoutes");
+const submissionRoutes = require("./routes/submissionRoutes");
 
-// ====================================
 // HOME ROUTE
-// ====================================
 
 app.get("/", (req, res) => {
     res.send("HackArena Backend is Running!");
 });
 
-// ====================================
 // HEALTH CHECK
-// ====================================
 
 app.get("/api/health", (req, res) => {
 
@@ -47,28 +40,27 @@ app.get("/api/health", (req, res) => {
 
 });
 
-// ====================================
 // EVENT API
-// ====================================
 
 app.use("/api/event", eventRoutes);
 
-// ====================================
 // AUTHENTICATION API
-// ====================================
 
 app.use("/api/auth", authRoutes);
 
-// ====================================
-// TEAM REGISTRATION AND LOGIN API
-// ====================================
+// TEAM API
 
 app.use("/api/teams", teamRoutes);
+
+// PROBLEM API
+
 app.use("/api/problems", problemRoutes);
 
-// ====================================
+// SUBMISSION API
+
+app.use("/api/submissions", submissionRoutes);
+
 // MONGODB CONNECTION
-// ====================================
 
 async function startServer() {
 
@@ -100,13 +92,10 @@ async function startServer() {
             console.log("HackArena Server running on port " + PORT);
 
             console.log("Event API: /api/event");
-
-            console.log("Register API: /api/auth/register");
-            console.log("Login API: /api/auth/login");
-
-            console.log("Team Register API: /api/teams/register");
-            console.log("Team Verify API: /api/teams/verify-email");
-            console.log("Team Login API: /api/teams/login");
+            console.log("Auth API: /api/auth");
+            console.log("Team API: /api/teams");
+            console.log("Problem API: /api/problems");
+            console.log("Submission API: /api/submissions");
 
         });
 

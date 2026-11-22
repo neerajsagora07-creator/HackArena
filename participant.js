@@ -641,157 +641,335 @@ matchingForm.addEventListener("submit", (event) => {
     "No recommendation has been generated or saved.";
 });
 
-// ---------------------------------
-// PRESENTATION FILE SELECTION
-// ---------------------------------
-
-const presentationInput =
-  document.getElementById("presentation");
-
-const fileStatus =
-  document.getElementById("file-status");
-
-presentationInput.addEventListener("change", () => {
-
-  const file = presentationInput.files[0];
-
-  if (!file) {
-
-    fileStatus.textContent =
-      "No file selected. Allowed formats and " +
-      "maximum size are not finalized.";
-
-    return;
-  }
-
-  const sizeInMB = file.size / (1024 * 1024);
-
-  fileStatus.textContent =
-    `Selected: ${file.name} ` +
-    `(${sizeInMB.toFixed(2)} MB). ` +
-    "Not uploaded. File size and format " +
-    "acceptance are not checked yet.";
-});
 
 // ---------------------------------
-// SUBMISSION READINESS CHECKER
+// PROJECT SUBMISSION INTEGRATION
 // ---------------------------------
 
-const submissionForm =
-  document.getElementById("submission-form");
+const presentationInput = document.getElementById("presentation");
+const fileStatus = document.getElementById("file-status");
+const submissionForm = document.getElementById("submission-form");
+const readinessResult = document.getElementById("readiness-result");
 
-const readinessResult =
-  document.getElementById("readiness-result");
+let existingPresentation = null;
+
+function getSubmissionToken() {
+    return sessionStorage.getItem("hackarenaTeamToken");
+}
 
 function isWebAddress(value) {
+    try {
+        const url = new URL(value);
+        return url.protocol === "https:" || url.protocol === "http:";
+    } catch {
+        return false;
+    }
+}
 
-  try {
-    const url = new URL(value);
+function getSubmissionFormData() {
+    const data = new FormData();
 
-    return (
-      url.protocol === "https:" ||
-      url.protocol === "http:"
-    );
+    data.append("projectTitle",
+        document.getElementById("project-name").value.trim());
 
-  } catch {
-    return false;
-  }
+    data.append("description",
+        document.getElementById("project-description").value.trim());
+
+    data.append("githubUrl",
+        document.getElementById("github-link").value.trim());
+
+    data.append("liveDemoUrl",
+        document.getElementById("demo-link").value.trim());
+
+    data.append("technologies",
+        document.getElementById("technologies").value.trim());
+
+    if (presentationInput.files.length) {
+        data.append("presentation", presentationInput.files[0]);
+    }
+
+    return data;
 }
 
 function getMissingItems() {
+    const missing = [];
 
-  const missing = [];
+    const title = document.getElementById("project-name").value.trim();
+    const description = document.getElementById("project-description").value.trim();
+    const github = document.getElementById("github-link").value.trim();
+    const demo = document.getElementById("demo-link").value.trim();
 
-  const projectName =
-    document.getElementById("project-name")
-      .value.trim();
+    if (!title) missing.push("Project name");
+    if (!description) missing.push("Project description");
+    if (!github || !isWebAddress(github)) missing.push("Valid GitHub URL");
 
-  const githubLink =
-    document.getElementById("github-link")
-      .value.trim();
+    if (demo && !isWebAddress(demo)) {
+        missing.push("Valid Live Demo URL");
+    }
 
-  const demoLink =
-    document.getElementById("demo-link")
-      .value.trim();
+    if (!presentationInput.files.length &&
+        !existingPresentation?.fileName) {
+        missing.push("Project presentation");
+    }
 
-  if (!projectName) {
-    missing.push("Project name");
-  }
-
-  if (!isWebAddress(githubLink)) {
-    missing.push("A valid GitHub repository URL");
-  }
-
-  if (!isWebAddress(demoLink)) {
-    missing.push("A valid demo URL");
-  }
-
-  if (!presentationInput.files.length) {
-    missing.push("Project presentation");
-  }
-
-  return missing;
+    return missing;
 }
 
-function displayMissingItems(missing) {
-
-  readinessResult.replaceChildren();
-
-  const heading = document.createElement("strong");
-  heading.textContent = "Complete these items:";
-
-  const list = document.createElement("ul");
-
-  missing.forEach((item) => {
-
-    const listItem = document.createElement("li");
-
-    listItem.textContent = item;
-    list.append(listItem);
-  });
-
-  readinessResult.append(heading, list);
+function showSubmissionMessage(message, success = false) {
+    readinessResult.textContent = message;
+    readinessResult.style.color = success ? "green" : "red";
 }
 
-document.getElementById("check-readiness")
-  .addEventListener("click", () => {
+function validatePresentationFile() {
+    const file = presentationInput.files[0];
+
+    if (!file) return true;
+
+    const extension = file.name.split(".").pop().toLowerCase();
+    const allowed = ["pdf", "ppt", "pptx"];
+
+    if (!allowed.includes(extension)) {
+        showSubmissionMessage("Only PDF, PPT and PPTX files are allowed.");
+        presentationInput.value = "";
+        return false;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+        showSubmissionMessage("Presentation must be 10 MB or smaller.");
+        presentationInput.value = "";
+        return false;
+    }
+
+    fileStatus.textContent =
+        "Selected: " + file.name + " (" +
+        (file.size / (1024 * 1024)).toFixed(2) + " MB)";
+
+    return true;
+}
+
+presentationInput.addEventListener("change", validatePresentationFile);
+
+// SAVE DRAFT
+
+document.getElementById("save-draft").addEventListener("click", async () => {
+    const token = getSubmissionToken();
+
+    if (!token) {
+        showSubmissionMessage("Please login again.");
+        return;
+    }
+
+    if (!participantState.selectedProblem) {
+        showSubmissionMessage("Please select a problem first.");
+        return;
+    }
+
+    if (!validatePresentationFile()) return;
+
+    const button = document.getElementById("save-draft");
+    button.disabled = true;
+    button.textContent = "Saving...";
+
+    try {
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/submissions/draft",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: "Bearer " + token
+                },
+                body: getSubmissionFormData()
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "Draft could not be saved.");
+        }
+
+        showSubmissionMessage("Draft saved successfully!", true);
+        await loadMySubmission();
+
+    } catch (error) {
+        showSubmissionMessage(error.message);
+    } finally {
+        button.disabled = false;
+        button.textContent = "Save Draft";
+    }
+});
+
+// CHECK READINESS
+
+document.getElementById("check-readiness").addEventListener("click", () => {
+    if (!validatePresentationFile()) return;
 
     const missing = getMissingItems();
 
     if (missing.length) {
-      displayMissingItems(missing);
-      return;
+        showSubmissionMessage("Please complete: " + missing.join(", "));
+        return;
     }
 
-    readinessResult.textContent =
-      "The visible fields are filled and " +
-      "a presentation file is selected. " +
-      "The backend still needs to verify the team, " +
-      "selected problem, deadline, links and file rules.";
-  });
-
-// ---------------------------------
-// FINAL SUBMISSION
-// ---------------------------------
-
-submissionForm.addEventListener("submit", (event) => {
-
-  event.preventDefault();
-
-  const missing = getMissingItems();
-
-  if (missing.length) {
-    displayMissingItems(missing);
-    return;
-  }
-
-  readinessResult.textContent =
-    "Final submission is not connected yet. " +
-    "No project information or presentation " +
-    "has been uploaded or saved. " +
-    "The server will verify authentication, " +
-    "problem selection and the deadline.";
+    showSubmissionMessage(
+        "All required details are ready. You can now submit your project.",
+        true
+    );
 });
+
+// FINAL SUBMISSION
+
+submissionForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    const token = getSubmissionToken();
+
+    if (!token) {
+        showSubmissionMessage("Please login again.");
+        return;
+    }
+
+    if (!participantState.selectedProblem) {
+        showSubmissionMessage("Please select a problem first.");
+        return;
+    }
+
+    if (!validatePresentationFile()) return;
+
+    const missing = getMissingItems();
+
+    if (missing.length) {
+        showSubmissionMessage("Please complete: " + missing.join(", "));
+        return;
+    }
+
+    const button = document.getElementById("final-submit");
+    button.disabled = true;
+    button.textContent = "Submitting...";
+
+    try {
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/submissions",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: "Bearer " + token
+                },
+                body: getSubmissionFormData()
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "Submission failed.");
+        }
+
+        showSubmissionMessage("Project submitted successfully!", true);
+
+        await loadMySubmission();
+
+        participantState.achievements.submission = true;
+        participantState.currentStage = "Submission";
+
+        updateAchievements();
+        updateProgressTracker();
+
+        submissionForm.querySelectorAll("input, textarea").forEach(element => {
+            element.disabled = true;
+        });
+
+        document.getElementById("save-draft").disabled = true;
+        document.getElementById("check-readiness").disabled = true;
+
+    } catch (error) {
+        showSubmissionMessage(error.message);
+    } finally {
+        button.disabled = false;
+        button.textContent = "Final Submission";
+    }
+});
+
+// LOAD SUBMISSION FROM DATABASE
+
+async function loadMySubmission() {
+    const token = getSubmissionToken();
+
+    if (!token) return;
+
+    try {
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/submissions/my-submission",
+            {
+                headers: {
+                    Authorization: "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "Could not load submission.");
+        }
+
+        if (!result.submissions.length) {
+            participantState.submissionStatus = "Not submitted";
+            existingPresentation = null;
+            updateSubmissionStatus();
+            return;
+        }
+
+        const submission = result.submissions[0];
+
+        document.getElementById("project-name").value =
+            submission.projectTitle || "";
+
+        document.getElementById("project-description").value =
+            submission.description || "";
+
+        document.getElementById("github-link").value =
+            submission.githubUrl || "";
+
+        document.getElementById("demo-link").value =
+            submission.liveDemoUrl || "";
+
+        document.getElementById("technologies").value =
+            Array.isArray(submission.technologies)
+                ? submission.technologies.join(", ")
+                : "";
+
+        existingPresentation = submission.presentation || null;
+
+        if (existingPresentation?.originalName) {
+            fileStatus.textContent =
+                "Uploaded presentation: " + existingPresentation.originalName;
+        }
+
+        participantState.submissionStatus =
+            submission.status.charAt(0).toUpperCase() +
+            submission.status.slice(1);
+
+        updateSubmissionStatus();
+
+        if (submission.status === "submitted" ||
+            submission.status === "evaluated") {
+
+            submissionForm.querySelectorAll("input, textarea").forEach(element => {
+                element.disabled = true;
+            });
+
+            document.getElementById("save-draft").disabled = true;
+            document.getElementById("check-readiness").disabled = true;
+            document.getElementById("final-submit").disabled = true;
+        }
+
+    } catch (error) {
+        console.error("Submission Loading Error:", error);
+    }
+}
+
 
 // ---------------------------------
 // SUBMISSION STATUS
@@ -949,9 +1127,11 @@ function initializeDashboard() {
   renderProblems();
   loadAvailableProblems();
 
-  updateSubmissionStatus();
-  updateProgressTracker();
-  updateAchievements();
+ updateSubmissionStatus();
+loadMySubmission();
+
+updateProgressTracker();
+updateAchievements();
 }
 
 // ====================================
