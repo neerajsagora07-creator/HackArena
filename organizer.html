@@ -680,6 +680,36 @@
             will appear here after backend integration.
           </p>
         </div>
+                <!-- PROJECT ASSIGNMENT -->
+        <div class="section-gap">
+            <h3>Project Assignment</h3>
+
+            <p>
+                Distribute submitted projects equally among
+                accepted judges. Each project will be assigned
+                to only one judge.
+            </p>
+
+            <button
+                type="button"
+                id="assign-projects-button"
+                class="button"
+            >
+                Assign Projects to Judges
+            </button>
+
+            <p
+                id="assignment-status"
+                class="status"
+                role="status"
+            ></p>
+
+            <div id="assignment-results" hidden>
+                <h4>Assignment Summary</h4>
+                <p id="assignment-summary"></p>
+                <ul id="judge-workload-list"></ul>
+            </div>
+        </div>
 
       </article>
 

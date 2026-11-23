@@ -282,6 +282,76 @@ function renderProjects() {
     projectList.append(row);
   });
 }
+// ---------------------------------
+// LOAD ASSIGNED PROJECTS FROM BACKEND
+// ---------------------------------
+
+async function loadAssignedProjects() {
+
+    const token = sessionStorage.getItem("hackarenaJudgeToken");
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/judges/assigned-projects",
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.message || "Unable to load assigned projects."
+            );
+        }
+
+        judgeData.submissions = data.projects.map((item) => {
+
+            const submission = item.submission;
+            const team = submission.team || {};
+            const problem = submission.problem || {};
+
+            return {
+                assignmentId: item.assignmentId,
+                teamName: team.teamName || "Team",
+                problemCode: problem.code || "—",
+                problemTitle: problem.title || "—",
+                projectName: submission.projectTitle || "Untitled Project",
+                evaluationStatus: item.status || "assigned",
+                submissionStatus: submission.status,
+                githubLink: submission.githubUrl || "",
+                demoLink: submission.liveDemoUrl || "",
+                presentationUrl: "",
+                problemStatement: "",
+                members: []
+            };
+
+        });
+
+        judgeData.statistics = {
+            availableSubmissions: judgeData.submissions.length,
+            completedEvaluations: 0,
+            evaluationStatus: "Projects loaded"
+        };
+
+        renderProjects();
+        updateStatistics();
+
+    } catch (error) {
+
+        console.error("Load Assigned Projects Error:", error);
+
+        projectsEmpty.textContent = error.message;
+        projectsEmpty.hidden = false;
+
+    }
+}
 
 // ---------------------------------
 // PROJECT DETAILS
@@ -645,9 +715,11 @@ async function verifyJudgeLogin() {
             JSON.stringify(result.judge)
         );
 
-        initializeJudge();
+       initializeJudge();
 
-        document.documentElement.style.visibility = "visible";
+await loadAssignedProjects();
+
+document.documentElement.style.visibility = "visible";
 
     } catch (error) {
 

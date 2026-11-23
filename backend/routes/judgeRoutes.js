@@ -1,3 +1,4 @@
+
 const express = require("express");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
@@ -24,7 +25,9 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+
 // SEND JUDGE INVITATION
+
 router.post("/invite", requireOrganizer, async (req, res) => {
     try {
         const { name, email } = req.body;
@@ -118,7 +121,9 @@ router.post("/invite", requireOrganizer, async (req, res) => {
     }
 });
 
+
 // GET JUDGE INVITATIONS
+
 router.get("/invitations", requireOrganizer, async (req, res) => {
     try {
         const invitations = await JudgeInvitation.find({
@@ -140,7 +145,9 @@ router.get("/invitations", requireOrganizer, async (req, res) => {
     }
 });
 
+
 // ACCEPT JUDGE INVITATION
+
 router.post("/accept", async (req, res) => {
     try {
         const { token, password } = req.body;
@@ -221,7 +228,9 @@ router.post("/accept", async (req, res) => {
     }
 });
 
+
 // DELETE JUDGE INVITATION
+
 router.delete("/invitations/:id", requireOrganizer, async (req, res) => {
     try {
         const invitation = await JudgeInvitation.findOneAndDelete({
@@ -251,24 +260,38 @@ router.delete("/invitations/:id", requireOrganizer, async (req, res) => {
     }
 });
 
-// AUTOMATICALLY ASSIGN ALL SUBMITTED PROJECTS TO JUDGES
+
+// AUTOMATICALLY ASSIGN SUBMITTED PROJECTS TO ACCEPTED JUDGES
 
 router.post("/assignments/sync", requireOrganizer, async (req, res) => {
     try {
-        const judges = await User.find({ role: "judge" }).select("_id");
+        // Get accepted judge invitations of this organizer
+        const invitations = await JudgeInvitation.find({
+            invitedBy: req.organizer._id,
+            status: "accepted"
+        }).select("email");
+
+        const emails = invitations.map(item => item.email);
+
+        // Get registered judge accounts
+        const judges = await User.find({
+            email: { $in: emails },
+            role: "judge"
+        }).select("_id").sort({ _id: 1 });
 
         if (judges.length === 0) {
             return res.json({
                 success: true,
-                message: "No judges are available for assignment.",
+                message: "No accepted judges available.",
                 assignedJudges: 0,
                 assignedProjects: 0
             });
         }
 
+        // Get all submitted projects
         const submissions = await Submission.find({
             status: "submitted"
-        }).select("_id");
+        }).sort({ submittedAt: 1, _id: 1 }).select("_id");
 
         if (submissions.length === 0) {
             return res.json({
@@ -279,37 +302,77 @@ router.post("/assignments/sync", requireOrganizer, async (req, res) => {
             });
         }
 
-        const operations = [];
+        const judgeIds = judges.map(judge => judge._id);
+        const submissionIds = submissions.map(item => item._id);
 
-        for (const judge of judges) {
-            for (const submission of submissions) {
-                operations.push({
-                    updateOne: {
-                        filter: {
-                            judge: judge._id,
-                            submission: submission._id
-                        },
-                        update: {
-                            $setOnInsert: {
-                                judge: judge._id,
-                                submission: submission._id,
-                                assignedBy: req.organizer._id,
-                                status: "assigned"
-                            }
-                        },
-                        upsert: true
-                    }
-                });
+        // Find projects that are already assigned
+        const existingAssignments = await JudgeAssignment.find({
+            submission: { $in: submissionIds }
+        }).select("submission");
+
+        const alreadyAssigned = new Set(
+            existingAssignments.map(item => item.submission.toString())
+        );
+
+        // Count each judge's existing workload
+        const judgeAssignments = await JudgeAssignment.find({
+            judge: { $in: judgeIds }
+        }).select("judge");
+
+        const workload = {};
+
+        judges.forEach(judge => {
+            workload[judge._id.toString()] = 0;
+        });
+
+        judgeAssignments.forEach(assignment => {
+            const judgeId = assignment.judge.toString();
+
+            if (workload[judgeId] !== undefined) {
+                workload[judgeId]++;
             }
-        }
+        });
 
-        await JudgeAssignment.bulkWrite(operations);
+        let assignedProjects = 0;
+
+        // Assign each new project to the judge with the lowest workload
+        for (const submission of submissions) {
+
+            if (alreadyAssigned.has(submission._id.toString())) {
+                continue;
+            }
+
+            let selectedJudge = judges[0];
+
+            for (const judge of judges) {
+                if (
+                    workload[judge._id.toString()] <
+                    workload[selectedJudge._id.toString()]
+                ) {
+                    selectedJudge = judge;
+                }
+            }
+
+            await JudgeAssignment.create({
+                judge: selectedJudge._id,
+                submission: submission._id,
+                assignedBy: req.organizer._id,
+                status: "assigned"
+            });
+
+            workload[selectedJudge._id.toString()]++;
+            assignedProjects++;
+        }
 
         res.json({
             success: true,
-            message: "Projects assigned to all judges successfully.",
+            message: assignedProjects > 0
+                ? "Projects assigned successfully."
+                : "All submitted projects are already assigned.",
             assignedJudges: judges.length,
-            assignedProjects: submissions.length
+            assignedProjects: assignedProjects,
+            totalSubmittedProjects: submissions.length,
+            judgeWorkload: workload
         });
 
     } catch (error) {
@@ -321,7 +384,6 @@ router.post("/assignments/sync", requireOrganizer, async (req, res) => {
         });
     }
 });
-
 
 // GET PROJECTS ASSIGNED TO LOGGED-IN JUDGE
 
@@ -369,5 +431,6 @@ router.get("/assigned-projects", requireJudge, async (req, res) => {
         });
     }
 });
+
 
 module.exports = router;

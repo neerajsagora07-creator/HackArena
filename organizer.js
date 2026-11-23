@@ -1434,6 +1434,74 @@ function renderJudges() {
         list.append(row);
     });
 }
+// ---------------------------------
+// AUTOMATIC PROJECT ASSIGNMENT
+// ---------------------------------
+
+const assignProjectsButton = document.getElementById(
+    "assign-projects-button"
+);
+
+assignProjectsButton.addEventListener("click", async () => {
+
+    const status = document.getElementById("assignment-status");
+    const results = document.getElementById("assignment-results");
+    const summary = document.getElementById("assignment-summary");
+
+    const token = sessionStorage.getItem("hackarenaOrganizerToken");
+
+    if (!token) {
+        status.textContent = "Please login as an organizer first.";
+        return;
+    }
+
+    assignProjectsButton.disabled = true;
+    status.textContent = "Assigning projects to accepted judges...";
+    results.hidden = true;
+
+    try {
+
+        const response = await fetch(
+            `${judgeApiUrl}/assignments/sync`,
+            {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(
+                data.message || "Project assignment failed."
+            );
+        }
+
+        status.textContent = data.message;
+
+        summary.textContent =
+            "Accepted Judges: " + data.assignedJudges +
+            " | Newly Assigned Projects: " + data.assignedProjects +
+            " | Total Submitted Projects: " +
+            (data.totalSubmittedProjects ?? 0);
+
+        results.hidden = false;
+
+    } catch (error) {
+
+        status.textContent = error.message;
+
+        console.error("Project Assignment Error:", error);
+
+    } finally {
+
+        assignProjectsButton.disabled = false;
+
+    }
+
+});
 
 // ---------------------------------
 // TIMER VALIDATION
