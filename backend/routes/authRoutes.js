@@ -6,6 +6,7 @@ const rateLimit = require("express-rate-limit");
 
 const User = require("../models/User");
 const requireOrganizer = require("../middleware/requireOrganizer");
+const requireJudge = require("../middleware/requireJudge");
 
 const router = express.Router();
 
@@ -379,6 +380,31 @@ router.post("/judge/login", judgeLoginLimit, async (req, res) => {
         });
     }
 });
+
+
+// ====================================
+// VERIFY JUDGE LOGIN
+// GET /api/auth/judge/me
+// ====================================
+
+router.get(
+    "/judge/me",
+    requireJudge,
+    (req, res) => {
+
+        res.json({
+            success: true,
+            message: "Judge Authenticated Successfully!",
+            judge: {
+                id: req.judge._id,
+                name: req.judge.name,
+                email: req.judge.email,
+                role: req.judge.role
+            }
+        });
+
+    }
+);
 
 // ====================================
 // EXPORT ROUTER

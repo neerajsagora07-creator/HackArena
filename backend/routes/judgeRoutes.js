@@ -1,4 +1,3 @@
-
 const express = require("express");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
@@ -7,6 +6,11 @@ const nodemailer = require("nodemailer");
 const JudgeInvitation = require("../models/JudgeInvitation");
 const User = require("../models/User");
 const requireOrganizer = require("../middleware/requireOrganizer");
+
+const Submission = require("../models/submission");
+const JudgeAssignment = require("../models/JudgeAssignment");
+const Evaluation = require("../models/Evaluation");
+const requireJudge = require("../middleware/requireJudge");
 
 const router = express.Router();
 
@@ -243,6 +247,125 @@ router.delete("/invitations/:id", requireOrganizer, async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Unable to delete judge invitation."
+        });
+    }
+});
+
+// AUTOMATICALLY ASSIGN ALL SUBMITTED PROJECTS TO JUDGES
+
+router.post("/assignments/sync", requireOrganizer, async (req, res) => {
+    try {
+        const judges = await User.find({ role: "judge" }).select("_id");
+
+        if (judges.length === 0) {
+            return res.json({
+                success: true,
+                message: "No judges are available for assignment.",
+                assignedJudges: 0,
+                assignedProjects: 0
+            });
+        }
+
+        const submissions = await Submission.find({
+            status: "submitted"
+        }).select("_id");
+
+        if (submissions.length === 0) {
+            return res.json({
+                success: true,
+                message: "No submitted projects available.",
+                assignedJudges: judges.length,
+                assignedProjects: 0
+            });
+        }
+
+        const operations = [];
+
+        for (const judge of judges) {
+            for (const submission of submissions) {
+                operations.push({
+                    updateOne: {
+                        filter: {
+                            judge: judge._id,
+                            submission: submission._id
+                        },
+                        update: {
+                            $setOnInsert: {
+                                judge: judge._id,
+                                submission: submission._id,
+                                assignedBy: req.organizer._id,
+                                status: "assigned"
+                            }
+                        },
+                        upsert: true
+                    }
+                });
+            }
+        }
+
+        await JudgeAssignment.bulkWrite(operations);
+
+        res.json({
+            success: true,
+            message: "Projects assigned to all judges successfully.",
+            assignedJudges: judges.length,
+            assignedProjects: submissions.length
+        });
+
+    } catch (error) {
+        console.error("Judge Assignment Error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to assign projects."
+        });
+    }
+});
+
+
+// GET PROJECTS ASSIGNED TO LOGGED-IN JUDGE
+
+router.get("/assigned-projects", requireJudge, async (req, res) => {
+    try {
+        const assignments = await JudgeAssignment.find({
+            judge: req.judge._id
+        })
+        .populate({
+            path: "submission",
+            match: { status: "submitted" },
+            populate: [
+                {
+                    path: "team",
+                    select: "teamName teamId"
+                },
+                {
+                    path: "problem",
+                    select: "title code"
+                }
+            ]
+        })
+        .sort({ assignedAt: -1 });
+
+        const projects = assignments
+            .filter(item => item.submission)
+            .map(item => ({
+                assignmentId: item._id,
+                submission: item.submission,
+                status: item.status
+            }));
+
+        res.json({
+            success: true,
+            count: projects.length,
+            projects
+        });
+
+    } catch (error) {
+        console.error("Assigned Projects Error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to load assigned projects."
         });
     }
 });

@@ -1,6 +1,9 @@
 
 "use strict";
 
+// Hide Judge Dashboard until login is verified
+document.documentElement.style.visibility = "hidden";
+
 // ---------------------------------
 // HACKARENA JUDGE DASHBOARD
 // FRONTEND ONLY
@@ -548,18 +551,22 @@ function updateStatistics() {
 // LOGOUT
 // ---------------------------------
 
-document.getElementById("logout-button")
-  .addEventListener("click", () => {
 
-    document.getElementById("logout-status")
-      .textContent =
-      "Logout is not connected yet. " +
-      "No authenticated session has been ended.";
+document.getElementById("logout-button")
+    .addEventListener("click", () => {
+
+        sessionStorage.removeItem("hackarenaJudgeToken");
+        sessionStorage.removeItem("hackarenaJudge");
+
+        window.location.replace("./index.html");
+
+    });
+
 
     // Real logout will call the backend,
     // invalidate the session and then
     // redirect to the login page.
-  });
+
 
 // ---------------------------------
 // INITIAL SETUP
@@ -582,7 +589,85 @@ function initializeJudge() {
   updateStatistics();
 }
 
-initializeJudge();
+
+async function verifyJudgeLogin() {
+
+    const token = sessionStorage.getItem(
+        "hackarenaJudgeToken"
+    );
+
+    if (!token) {
+        window.location.replace("./index.html");
+        return;
+    }
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/auth/judge/me",
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        if (response.status === 401 || response.status === 403) {
+
+            sessionStorage.removeItem("hackarenaJudgeToken");
+            sessionStorage.removeItem("hackarenaJudge");
+
+            window.location.replace("./index.html");
+            return;
+        }
+
+        if (!response.ok) {
+            throw new Error("Judge verification failed.");
+        }
+
+        const result = await response.json();
+
+        if (
+            !result.success ||
+            result.judge?.role !== "judge"
+        ) {
+            sessionStorage.removeItem("hackarenaJudgeToken");
+            sessionStorage.removeItem("hackarenaJudge");
+
+            window.location.replace("./index.html");
+            return;
+        }
+
+        sessionStorage.setItem(
+            "hackarenaJudge",
+            JSON.stringify(result.judge)
+        );
+
+        initializeJudge();
+
+        document.documentElement.style.visibility = "visible";
+
+    } catch (error) {
+
+        console.error("Judge Verification Error:", error);
+
+        document.body.replaceChildren();
+
+        const message = document.createElement("p");
+
+        message.textContent =
+            "Cannot verify Judge login. Check backend server and refresh.";
+
+        document.body.append(message);
+
+        document.documentElement.style.visibility = "visible";
+    }
+}
+
+verifyJudgeLogin();
+
 
 // ---------------------------------
 // BACKEND INTEGRATION NOTES
