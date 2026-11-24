@@ -542,16 +542,13 @@ router.post("/evaluation/:submissionId", requireJudge, async (req, res) => {
             submission: submissionId
         });
 
-        if (existingEvaluation) {
-            return res.status(409).json({
-                success: false,
-                message: "This project has already been evaluated."
-            });
-        }
 
         const submission = await Submission.findById(submissionId);
-
-        if (!submission || submission.status !== "submitted") {
+if (
+    !submission ||
+    (submission.status !== "submitted" &&
+     submission.status !== "evaluated")
+) {
             return res.status(400).json({
                 success: false,
                 message: "Only submitted projects can be evaluated."
@@ -628,26 +625,44 @@ router.post("/evaluation/:submissionId", requireJudge, async (req, res) => {
             });
         }
 
-        const evaluation = await Evaluation.create({
-            judge: req.judge._id,
-            submission: submissionId,
-            criteria: savedCriteria,
-            totalScore,
-            totalMaximum,
-            feedback: feedback || ""
-        });
+     let evaluation;
 
-        assignment.status = "evaluated";
-        await assignment.save();
+if (existingEvaluation) {
 
-        submission.status = "evaluated";
-        await submission.save();
+    existingEvaluation.criteria = savedCriteria;
+    existingEvaluation.totalScore = totalScore;
+    existingEvaluation.totalMaximum = totalMaximum;
+    existingEvaluation.feedback = feedback || "";
+    existingEvaluation.evaluatedAt = new Date();
 
-        res.status(201).json({
-            success: true,
-            message: "Evaluation saved successfully.",
-            evaluation
-        });
+    evaluation = await existingEvaluation.save();
+
+} else {
+
+    evaluation = await Evaluation.create({
+        judge: req.judge._id,
+        submission: submissionId,
+        criteria: savedCriteria,
+        totalScore,
+        totalMaximum,
+        feedback: feedback || ""
+    });
+
+}
+
+assignment.status = "evaluated";
+await assignment.save();
+
+submission.status = "evaluated";
+await submission.save();
+
+res.status(existingEvaluation ? 200 : 201).json({
+    success: true,
+    message: existingEvaluation
+        ? "Evaluation updated successfully."
+        : "Evaluation saved successfully.",
+    evaluation
+});
 
     } catch (error) {
         console.error("Save evaluation error:", error);

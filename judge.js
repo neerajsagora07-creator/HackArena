@@ -559,6 +559,13 @@ async function selectProject(submission) {
         `Selected project: ${submission.projectName}`;
 
     evaluationForm.reset();
+    const submitButton = evaluationForm.querySelector(
+    'button[type="submit"]'
+);
+
+if (submitButton) {
+    submitButton.textContent = "Save Evaluation";
+}
 
     evaluationFields.disabled = false;
 
@@ -580,6 +587,9 @@ async function selectProject(submission) {
     }
 
     if (evaluation) {
+        if (submitButton) {
+    submitButton.textContent = "Update Evaluation";
+}
 
         submission.evaluationStatus = "evaluated";
 
@@ -603,12 +613,12 @@ async function selectProject(submission) {
 
         updateTotal();
 
-        evaluationFields.disabled = true;
+        evaluationFields.disabled = false;
 
         evaluationStatus.textContent =
-            `Already evaluated. Score: ${evaluation.totalScore} / ${evaluation.totalMaximum}`;
+          `Already evaluated. You can edit the marks and update the evaluation. Score: ${evaluation.totalScore} / ${evaluation.totalMaximum}`;
 
-        document.getElementById("evaluate-selected").disabled = true;
+        document.getElementById("evaluate-selected").disabled = false;
 
     } else {
 
@@ -662,13 +672,7 @@ evaluationForm.addEventListener("submit", async (event) => {
         return;
     }
 
-    if (selectedSubmission.evaluationStatus === "evaluated") {
-
-        evaluationStatus.textContent =
-            "This project has already been evaluated.";
-
-        return;
-    }
+   
 
     const token = sessionStorage.getItem(
         "hackarenaJudgeToken"
@@ -726,9 +730,9 @@ evaluationForm.addEventListener("submit", async (event) => {
 
         selectedSubmission.evaluationStatus = "evaluated";
 
-        evaluationFields.disabled = true;
+       evaluationFields.disabled = false;
 
-        document.getElementById("evaluate-selected").disabled = true;
+        document.getElementById("evaluate-selected").disabled = false;
 
         evaluationStatus.textContent =
             `Evaluation saved successfully! Score: ${data.evaluation.totalScore} / ${data.evaluation.totalMaximum}`;
@@ -749,16 +753,14 @@ evaluationForm.addEventListener("submit", async (event) => {
 
         evaluationStatus.textContent = error.message;
 
-    } finally {
+        } finally {
 
-        if (
-            submitButton &&
-            selectedSubmission &&
-            selectedSubmission.evaluationStatus !== "evaluated"
-        ) {
+        if (submitButton) {
             submitButton.disabled = false;
         }
+
     }
+
 });
 // ---------------------------------
 // LEADERBOARD
@@ -782,11 +784,11 @@ function renderLeaderboard() {
         const row = document.createElement("tr");
 
         const values = [
-            entry.rank,
-            entry.teamName,
-            entry.projectName,
-            entry.score
-        ];
+    entry.rank,
+    entry.teamName,
+    entry.projectTitle,
+    `${entry.totalScore} / ${entry.totalMaximum}`
+];
 
         values.forEach((value) => {
 
@@ -800,11 +802,9 @@ function renderLeaderboard() {
         leaderboardList.append(row);
     });
 }
-
 async function loadLeaderboard() {
 
-    leaderboardEmpty.hidden = false;
-    leaderboardEmpty.textContent = "Loading leaderboard...";
+    const token = sessionStorage.getItem("hackarenaJudgeToken");
 
     try {
 
@@ -812,6 +812,9 @@ async function loadLeaderboard() {
             "http://127.0.0.1:5000/api/leaderboard",
             {
                 method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
                 cache: "no-store"
             }
         );
@@ -819,37 +822,21 @@ async function loadLeaderboard() {
         const result = await response.json();
 
         if (!response.ok || !result.success) {
-            throw new Error(
-                result.message || "Could not load leaderboard."
-            );
+            throw new Error(result.message || "Could not load leaderboard.");
         }
 
-        judgeData.leaderboard = (result.leaderboard || []).map((entry) => ({
-            rank: entry.rank,
-            teamName: entry.teamName,
-            projectName: entry.projectTitle,
-            score: `${entry.totalScore} / ${entry.totalMaximum}`
-        }));
+        judgeData.leaderboard = result.leaderboard || [];
 
         renderLeaderboard();
-
-        if (judgeData.leaderboard.length === 0) {
-            leaderboardEmpty.textContent =
-                "No evaluated projects available yet.";
-        }
 
     } catch (error) {
 
         console.error("Leaderboard Loading Error:", error);
 
-        judgeData.leaderboard = [];
-        renderLeaderboard();
-
         leaderboardEmpty.hidden = false;
         leaderboardEmpty.textContent = error.message;
     }
 }
-
 // ---------------------------------
 // OVERVIEW STATISTICS
 // ---------------------------------
@@ -892,8 +879,7 @@ document.getElementById("logout-button")
 // INITIAL SETUP
 // ---------------------------------
 
-function initializeJudge() {
-
+async function initializeJudge() {
     showPage("overview");
 
     evaluationFields.disabled = true;
@@ -906,9 +892,10 @@ function initializeJudge() {
     renderProjects();
 
     renderLeaderboard();
-    loadLeaderboard();
 
     updateStatistics();
+
+    await loadLeaderboard();
 }
 
 // ---------------------------------
