@@ -1554,45 +1554,113 @@ function readDuration(hoursId, minutesId) {
 // TIMER FORM
 // ---------------------------------
 
-document.getElementById("timer-form")
-  .addEventListener("submit", (event) => {
+async function controlTimer(action, hours = 0, minutes = 0) {
+    const status = document.getElementById("timer-status");
 
-    event.preventDefault();
+    try {
+        const token = sessionStorage.getItem(
+            "hackarenaOrganizerToken"
+        );
 
-    const duration =
-      readDuration(
-        "timer-hours",
-        "timer-minutes"
-      );
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/event/timer",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " + token
+                },
+                body: JSON.stringify({
+                    action,
+                    hours,
+                    minutes
+                })
+            }
+        );
 
-    const status =
-      document.getElementById("timer-status");
+        const data = await response.json();
 
-    if (!duration) {
+        if (!response.ok || !data.success) {
+            throw new Error(data.message);
+        }
 
-      status.textContent =
-        "Enter a positive duration using whole " +
-        "hours and 0–59 minutes.";
+        status.textContent = data.message;
 
-      return;
+        return data.timer;
+
+    } catch (error) {
+        status.textContent = error.message;
+        return null;
     }
+}
 
-    status.textContent =
-      `Requested duration: ${duration.hours} hour(s), ` +
-      `${duration.minutes} minute(s). ` +
-      "No live timer has started. " +
-      "The backend will control the shared deadline.";
-  });
+document.getElementById("timer-form")
+    .addEventListener("submit", async (event) => {
+
+        event.preventDefault();
+
+        const duration = readDuration(
+            "timer-hours",
+            "timer-minutes"
+        );
+
+        if (!duration) {
+            document.getElementById("timer-status")
+                .textContent = "Enter a valid duration.";
+
+            return;
+        }
+
+        await controlTimer(
+            "start",
+            duration.hours,
+            duration.minutes
+        );
+    });
 
 document.getElementById("stop-timer")
-  .addEventListener("click", () => {
+    .addEventListener("click", async () => {
 
-    document.getElementById("timer-status")
-      .textContent =
-      "No live timer is connected. " +
-      "Pause, resume or reset behavior must be finalized.";
-  });
+        if (!confirm("Are you sure you want to stop the timer?")) {
+            return;
+        }
 
+        const timer = await controlTimer("stop");
+
+        if (timer) {
+            await loadLiveTimer();
+        }
+    });
+// PAUSE TIMER
+
+document.getElementById("pause-timer")
+    .addEventListener("click", async () => {
+
+        await controlTimer("pause");
+        await loadLiveTimer();
+    });
+
+// RESUME TIMER
+
+document.getElementById("resume-timer")
+    .addEventListener("click", async () => {
+
+        await controlTimer("resume");
+        await loadLiveTimer();
+    });
+
+// RESET TIMER
+
+document.getElementById("reset-timer")
+    .addEventListener("click", async () => {
+
+        if (!confirm("Are you sure you want to reset the timer?")) {
+            return;
+        }
+
+        await controlTimer("reset");
+        await loadLiveTimer();
+    });
 // ---------------------------------
 // EXTRA TIME
 // ---------------------------------
@@ -2388,7 +2456,89 @@ document.documentElement.style.visibility = "visible";
 
 // Start Organizer Login Verification
 verifyOrganizerLogin();
+// LIVE HACKATHON COUNTDOWN
 
+let liveTimerData = null;
+let timerServerOffset = 0;
+
+async function loadLiveTimer() {
+    try {
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/event/timer",
+            { cache: "no-store" }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error("Timer unavailable");
+        }
+
+        liveTimerData = data.timer;
+
+        timerServerOffset =
+            data.timer.serverTime - Date.now();
+
+        displayLiveTimer();
+
+    } catch (error) {
+        liveTimerData = null;
+
+        document.getElementById("overview-timer")
+            .textContent = "Not connected";
+    }
+}
+
+function displayLiveTimer() {
+
+    if (!liveTimerData) return;
+
+    let remaining = liveTimerData.remaining;
+
+    if (liveTimerData.status === "running") {
+        remaining = Math.max(
+            0,
+            Math.ceil(
+                (
+                    new Date(liveTimerData.endAt).getTime()
+                    - Date.now()
+                    - timerServerOffset
+                ) / 1000
+            )
+        );
+    }
+
+    const hours = String(
+        Math.floor(remaining / 3600)
+    ).padStart(2, "0");
+
+    const minutes = String(
+        Math.floor((remaining % 3600) / 60)
+    ).padStart(2, "0");
+
+    const seconds = String(
+        remaining % 60
+    ).padStart(2, "0");
+
+    const countdown = `${hours}:${minutes}:${seconds}`;
+
+    const overview = document.getElementById("overview-timer");
+
+    if (liveTimerData.status === "idle") {
+        overview.textContent = "Not Started";
+    } else if (remaining === 0) {
+        overview.textContent = "Time Over";
+    } else if (liveTimerData.status === "paused") {
+        overview.textContent = countdown + " (Paused)";
+    } else {
+        overview.textContent = countdown;
+    }
+}
+
+loadLiveTimer();
+
+setInterval(loadLiveTimer, 3000);
+setInterval(displayLiveTimer, 1000);
 // ---------------------------------
 // FUTURE BACKEND INTEGRATION
 // ---------------------------------

@@ -997,3 +997,110 @@ async function verifyJudgeLogin() {
 // ---------------------------------
 
 verifyJudgeLogin();
+
+
+// JUDGE LIVE HACKATHON TIMER
+
+(() => {
+
+    let timerData = null;
+    let serverOffset = 0;
+
+    async function loadJudgeTimer() {
+        try {
+            const response = await fetch(
+                "http://127.0.0.1:5000/api/event/timer",
+                { cache: "no-store" }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error("Timer unavailable");
+            }
+
+            timerData = data.timer;
+
+            serverOffset =
+                timerData.serverTime - Date.now();
+
+            displayJudgeTimer();
+
+        } catch (error) {
+            timerData = null;
+
+            document.getElementById("judge-countdown")
+                .textContent = "--:--:--";
+
+            document.getElementById("judge-countdown-status")
+                .textContent = "Timer not connected";
+        }
+    }
+
+    function displayJudgeTimer() {
+
+        if (!timerData) return;
+
+        const value =
+            document.getElementById("judge-countdown");
+
+        const status =
+            document.getElementById("judge-countdown-status");
+
+        let remaining = timerData.remaining;
+
+        if (timerData.status === "running") {
+
+            remaining = Math.max(
+                0,
+                Math.ceil(
+                    (
+                        new Date(timerData.endAt).getTime()
+                        - Date.now()
+                        - serverOffset
+                    ) / 1000
+                )
+            );
+        }
+
+        const hours = String(
+            Math.floor(remaining / 3600)
+        ).padStart(2, "0");
+
+        const minutes = String(
+            Math.floor((remaining % 3600) / 60)
+        ).padStart(2, "0");
+
+        const seconds = String(
+            remaining % 60
+        ).padStart(2, "0");
+
+        value.textContent =
+            `${hours}:${minutes}:${seconds}`;
+
+        if (timerData.status === "idle") {
+
+            value.textContent = "--:--:--";
+            status.textContent =
+                "Waiting for organizer to start";
+
+        } else if (remaining === 0) {
+
+            status.textContent = "Hackathon Time Over";
+
+        } else if (timerData.status === "paused") {
+
+            status.textContent = "Timer Paused";
+
+        } else {
+
+            status.textContent = "Hackathon in Progress";
+        }
+    }
+
+    loadJudgeTimer();
+
+    setInterval(loadJudgeTimer, 3000);
+    setInterval(displayJudgeTimer, 1000);
+
+})();

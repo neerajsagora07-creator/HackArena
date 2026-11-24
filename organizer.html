@@ -763,7 +763,17 @@
             <button id="stop-timer" type="button" class="button secondary">
               Stop Timer
             </button>
+<button id="pause-timer" type="button" class="button secondary">
+    Pause Timer
+</button>
 
+<button id="resume-timer" type="button" class="button secondary">
+    Resume Timer
+</button>
+
+<button id="reset-timer" type="button" class="button secondary">
+    Reset Timer
+</button>
           </div>
 
           <p id="timer-status" class="status" role="status"></p>
@@ -771,10 +781,9 @@
         </form>
 
         <p class="help">
-          Stop behavior (pause, resume or reset)
-          has not yet been finalized.
-        </p>
-
+    Manage the live hackathon countdown.
+    Submission deadline remains independent.
+</p>
       </article>
 
       <article class="panel section-gap">
@@ -792,10 +801,11 @@
           <div class="field">
             <label for="extension-scope">Who receives extra time?</label>
 
-            <select id="extension-scope" name="scope">
-              <option value="team">Particular Team</option>
-              <option value="event">All Participating Teams</option>
-            </select>
+           <select id="extension-scope" name="scope">
+    <option value="team">Particular Team</option>
+    <option value="event">All Participating Teams</option>
+    <option value="countdown">Extend Hackathon Countdown</option>
+</select>
           </div>
 
           <div id="extension-team-field" class="field">

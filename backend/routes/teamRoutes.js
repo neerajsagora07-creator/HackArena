@@ -43,7 +43,7 @@ function createMailTransport() {
         secure: port === 465,
         auth: {
             user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASSWORD
+            pass: process.env.SMTP_PASS
         }
     });
 }
@@ -158,7 +158,7 @@ router.post("/register", registerLimit, async (req, res) => {
         if (
             !process.env.SMTP_HOST ||
             !process.env.SMTP_USER ||
-            !process.env.SMTP_PASSWORD
+            !process.env.SMTP_PASS
         ) {
             return res.status(503).json({
                 success: false,

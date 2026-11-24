@@ -34,7 +34,32 @@ const eventSchema = new mongoose.Schema({
         type: Date,
         default: null
     },
+timerStatus: {
+    type: String,
+    enum: ["idle", "running", "paused", "finished"],
+    default: "idle"
+},
 
+timerDuration: {
+    type: Number,
+    default: 0
+},
+
+timerRemaining: {
+    type: Number,
+    default: 0
+},
+
+timerEndAt: {
+    type: Date,
+    default: null
+},
+
+teamExtraTime: {
+    type: Map,
+    of: Number,
+    default: {}
+},
     maximumTeams: {
         type: Number,
         default: 60,
@@ -79,4 +104,4 @@ const eventSchema = new mongoose.Schema({
     timestamps: true
 });
 
-module.exports = mongoose.models.Event || mongoose.model("Event", eventSchema);
+module.exports = mongoose.model("Event", eventSchema);

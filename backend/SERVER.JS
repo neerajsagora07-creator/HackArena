@@ -2,10 +2,22 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
+const path = require("path");
 
-require("dotenv").config();
+require("dotenv").config({
+    path: path.join(__dirname, ".env")
+});
 
 const app = express();
+
+// SMTP CONFIGURATION CHECK
+
+console.log("SMTP CHECK:", {
+    host: !!process.env.SMTP_HOST,
+    port: !!process.env.SMTP_PORT,
+    user: !!process.env.SMTP_USER,
+    pass: !!process.env.SMTP_PASS
+});
 
 // MIDDLEWARE
 
@@ -21,6 +33,7 @@ const problemRoutes = require("./routes/problemRoutes");
 const submissionRoutes = require("./routes/submissionRoutes");
 const judgeRoutes = require("./routes/judgeRoutes");
 const leaderboardRoutes = require("./routes/leaderboardRoutes");
+
 // HOME ROUTE
 
 app.get("/", (req, res) => {
@@ -42,7 +55,8 @@ app.get("/api/health", (req, res) => {
 });
 
 // EVENT API
-
+app.use("/api/event/timer", 
+    require("./routes/timerRoutes"));
 app.use("/api/event", eventRoutes);
 
 // AUTHENTICATION API
@@ -64,9 +78,11 @@ app.use("/api/submissions", submissionRoutes);
 // JUDGE API
 
 app.use("/api/judges", judgeRoutes);
+
 // PUBLIC LEADERBOARD API
 
 app.use("/api/leaderboard", leaderboardRoutes);
+
 // MONGODB CONNECTION
 
 async function startServer() {
@@ -104,7 +120,8 @@ async function startServer() {
             console.log("Problem API: /api/problems");
             console.log("Submission API: /api/submissions");
             console.log("Judge API: /api/judges");
-console.log("Leaderboard API: /api/leaderboard");
+            console.log("Leaderboard API: /api/leaderboard");
+
         });
 
     } catch (error) {
@@ -113,6 +130,7 @@ console.log("Leaderboard API: /api/leaderboard");
         process.exit(1);
 
     }
+
 }
 
 startServer();

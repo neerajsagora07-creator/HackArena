@@ -1336,6 +1336,98 @@ async function loadAuthenticatedTeam() {
 
 loadAuthenticatedTeam();
 
+// LIVE HACKATHON COUNTDOWN
+
+(() => {
+
+    let timerData = null;
+    let serverOffset = 0;
+
+    async function loadParticipantTimer() {
+        try {
+            const response = await fetch(
+                "http://127.0.0.1:5000/api/event/timer",
+                { cache: "no-store" }
+            );
+
+            const data = await response.json();
+
+            if (!response.ok || !data.success) {
+                throw new Error("Timer unavailable");
+            }
+
+            timerData = data.timer;
+            serverOffset = timerData.serverTime - Date.now();
+
+            displayParticipantTimer();
+
+        } catch (error) {
+            timerData = null;
+
+            document.getElementById("countdown-status")
+                .textContent = "Timer not connected";
+        }
+    }
+
+    function displayParticipantTimer() {
+
+        if (!timerData) return;
+
+        const value = document.getElementById("countdown-value");
+        const status = document.getElementById("countdown-status");
+
+        let remaining = timerData.remaining;
+
+        if (timerData.status === "running") {
+            remaining = Math.max(
+                0,
+                Math.ceil(
+                    (new Date(timerData.endAt).getTime()
+                    - Date.now() - serverOffset) / 1000
+                )
+            );
+        }
+
+        const hours = String(
+            Math.floor(remaining / 3600)
+        ).padStart(2, "0");
+
+        const minutes = String(
+            Math.floor((remaining % 3600) / 60)
+        ).padStart(2, "0");
+
+        const seconds = String(
+            remaining % 60
+        ).padStart(2, "0");
+
+        value.textContent = `${hours}:${minutes}:${seconds}`;
+
+        if (timerData.status === "idle") {
+            value.textContent = "--:--:--";
+            status.textContent = "Waiting for organizer to start";
+
+        } else if (remaining === 0) {
+            status.textContent = "Hackathon Time Over";
+
+        } else if (timerData.status === "paused") {
+            status.textContent = "Timer Paused";
+
+        } else if (remaining <= 300) {
+            status.textContent = "Hurry up! Less than 5 minutes remaining";
+
+        } else {
+            status.textContent = "Hackathon in Progress";
+        }
+
+        value.setAttribute("aria-label", value.textContent);
+    }
+
+    loadParticipantTimer();
+
+    setInterval(loadParticipantTimer, 3000);
+    setInterval(displayParticipantTimer, 1000);
+
+})();
 // ---------------------------------
 // BACKEND INTEGRATION NOTES
 // ---------------------------------
