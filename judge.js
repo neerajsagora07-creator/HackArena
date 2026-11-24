@@ -801,6 +801,55 @@ function renderLeaderboard() {
     });
 }
 
+async function loadLeaderboard() {
+
+    leaderboardEmpty.hidden = false;
+    leaderboardEmpty.textContent = "Loading leaderboard...";
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/leaderboard",
+            {
+                method: "GET",
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Could not load leaderboard."
+            );
+        }
+
+        judgeData.leaderboard = (result.leaderboard || []).map((entry) => ({
+            rank: entry.rank,
+            teamName: entry.teamName,
+            projectName: entry.projectTitle,
+            score: `${entry.totalScore} / ${entry.totalMaximum}`
+        }));
+
+        renderLeaderboard();
+
+        if (judgeData.leaderboard.length === 0) {
+            leaderboardEmpty.textContent =
+                "No evaluated projects available yet.";
+        }
+
+    } catch (error) {
+
+        console.error("Leaderboard Loading Error:", error);
+
+        judgeData.leaderboard = [];
+        renderLeaderboard();
+
+        leaderboardEmpty.hidden = false;
+        leaderboardEmpty.textContent = error.message;
+    }
+}
+
 // ---------------------------------
 // OVERVIEW STATISTICS
 // ---------------------------------
@@ -857,6 +906,7 @@ function initializeJudge() {
     renderProjects();
 
     renderLeaderboard();
+    loadLeaderboard();
 
     updateStatistics();
 }

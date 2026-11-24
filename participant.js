@@ -970,6 +970,75 @@ async function loadMySubmission() {
     }
 }
 
+// ---------------------------------
+// LOAD LEADERBOARD
+// ---------------------------------
+
+async function loadLeaderboard() {
+
+    const leaderboardList = document.getElementById("leaderboard-list");
+    const leaderboardEmpty = document.getElementById("leaderboard-empty");
+
+    leaderboardList.replaceChildren();
+
+    leaderboardEmpty.hidden = false;
+    leaderboardEmpty.textContent = "Loading leaderboard...";
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/leaderboard",
+            {
+                method: "GET",
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || "Could not load leaderboard.");
+        }
+
+        const leaderboard = result.leaderboard || [];
+
+        leaderboardList.replaceChildren();
+        leaderboardEmpty.hidden = leaderboard.length > 0;
+
+        if (leaderboard.length === 0) {
+            leaderboardEmpty.textContent = "No evaluated projects available yet.";
+            return;
+        }
+
+        leaderboard.forEach((entry) => {
+
+            const row = document.createElement("tr");
+
+            const values = [
+                entry.rank,
+                entry.teamName,
+                entry.projectTitle,
+                `${entry.totalScore} / ${entry.totalMaximum}`
+            ];
+
+            values.forEach((value) => {
+                const cell = document.createElement("td");
+                cell.textContent = String(value ?? "—");
+                row.append(cell);
+            });
+
+            leaderboardList.append(row);
+        });
+
+    } catch (error) {
+
+        console.error("Leaderboard Loading Error:", error);
+
+        leaderboardEmpty.hidden = false;
+        leaderboardEmpty.textContent = error.message;
+    }
+}
+
 
 // ---------------------------------
 // SUBMISSION STATUS
@@ -1129,6 +1198,7 @@ function initializeDashboard() {
 
  updateSubmissionStatus();
 loadMySubmission();
+loadLeaderboard();
 
 updateProgressTracker();
 updateAchievements();
