@@ -3,6 +3,8 @@ const express = require("express");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
+const mongoose = require("mongoose");
+const Event = require("../models/Event");
 
 const JudgeInvitation = require("../models/JudgeInvitation");
 const User = require("../models/User");
@@ -11,6 +13,7 @@ const requireOrganizer = require("../middleware/requireOrganizer");
 const Submission = require("../models/submission");
 const JudgeAssignment = require("../models/JudgeAssignment");
 const Evaluation = require("../models/Evaluation");
+
 const requireJudge = require("../middleware/requireJudge");
 
 const router = express.Router();
@@ -394,7 +397,7 @@ router.get("/assigned-projects", requireJudge, async (req, res) => {
         })
         .populate({
             path: "submission",
-            match: { status: "submitted" },
+           match: { status: { $in: ["submitted", "evaluated"] } },
             populate: [
                 {
                     path: "team",
@@ -432,5 +435,234 @@ router.get("/assigned-projects", requireJudge, async (req, res) => {
     }
 });
 
+// ==========================================
+// JUDGE EVALUATION SYSTEM
+// ==========================================
 
+// 1. GET DYNAMIC EVALUATION CRITERIA
+router.get("/evaluation-criteria", requireJudge, async (req, res) => {
+    try {
+        const event = await Event.findOne();
+
+        if (!event) {
+            return res.status(404).json({
+                success: false,
+                message: "Event not found."
+            });
+        }
+
+        res.json({
+            success: true,
+            evaluationCriteria: event.evaluationCriteria
+        });
+
+    } catch (error) {
+        console.error("Evaluation criteria error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to load evaluation criteria."
+        });
+    }
+});
+
+
+// 2. GET EXISTING EVALUATION
+router.get("/evaluation/:submissionId", requireJudge, async (req, res) => {
+    try {
+        const { submissionId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(submissionId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid submission ID."
+            });
+        }
+
+        const assignment = await JudgeAssignment.findOne({
+            judge: req.judge._id,
+            submission: submissionId
+        });
+
+        if (!assignment) {
+            return res.status(403).json({
+                success: false,
+                message: "This project is not assigned to you."
+            });
+        }
+
+        const evaluation = await Evaluation.findOne({
+            judge: req.judge._id,
+            submission: submissionId
+        });
+
+        res.json({
+            success: true,
+            evaluation
+        });
+
+    } catch (error) {
+        console.error("Fetch evaluation error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to fetch evaluation."
+        });
+    }
+});
+
+
+// 3. SAVE JUDGE EVALUATION
+router.post("/evaluation/:submissionId", requireJudge, async (req, res) => {
+    try {
+        const { submissionId } = req.params;
+        const { criteria, feedback } = req.body;
+
+        if (!mongoose.Types.ObjectId.isValid(submissionId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid submission ID."
+            });
+        }
+
+        const assignment = await JudgeAssignment.findOne({
+            judge: req.judge._id,
+            submission: submissionId
+        });
+
+        if (!assignment) {
+            return res.status(403).json({
+                success: false,
+                message: "This project is not assigned to you."
+            });
+        }
+
+        const existingEvaluation = await Evaluation.findOne({
+            judge: req.judge._id,
+            submission: submissionId
+        });
+
+        if (existingEvaluation) {
+            return res.status(409).json({
+                success: false,
+                message: "This project has already been evaluated."
+            });
+        }
+
+        const submission = await Submission.findById(submissionId);
+
+        if (!submission || submission.status !== "submitted") {
+            return res.status(400).json({
+                success: false,
+                message: "Only submitted projects can be evaluated."
+            });
+        }
+
+        const event = await Event.findOne();
+
+        if (!event || !Array.isArray(event.evaluationCriteria)) {
+            return res.status(400).json({
+                success: false,
+                message: "Evaluation criteria are not configured."
+            });
+        }
+
+        if (!Array.isArray(criteria) ||
+            criteria.length !== event.evaluationCriteria.length) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide marks for all evaluation criteria."
+            });
+        }
+
+        const savedCriteria = [];
+        let totalScore = 0;
+        let totalMaximum = 0;
+        const usedNames = new Set();
+
+        for (const configured of event.evaluationCriteria) {
+            const entered = criteria.find(
+                item => item.name === configured.name
+            );
+
+            if (!entered || usedNames.has(entered.name)) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid or duplicate evaluation criteria."
+                });
+            }
+
+            const score = entered.score;
+
+            if (
+                typeof score !== "number" ||
+                !Number.isFinite(score) ||
+                score < 0 ||
+                score > configured.maximum
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: `Marks for ${configured.name} must be between 0 and ${configured.maximum}.`
+                });
+            }
+
+            usedNames.add(entered.name);
+
+            savedCriteria.push({
+                name: configured.name,
+                maximum: configured.maximum,
+                score
+            });
+
+            totalScore += score;
+            totalMaximum += configured.maximum;
+        }
+
+        if (
+            feedback !== undefined &&
+            typeof feedback !== "string"
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Feedback must be text."
+            });
+        }
+
+        const evaluation = await Evaluation.create({
+            judge: req.judge._id,
+            submission: submissionId,
+            criteria: savedCriteria,
+            totalScore,
+            totalMaximum,
+            feedback: feedback || ""
+        });
+
+        assignment.status = "evaluated";
+        await assignment.save();
+
+        submission.status = "evaluated";
+        await submission.save();
+
+        res.status(201).json({
+            success: true,
+            message: "Evaluation saved successfully.",
+            evaluation
+        });
+
+    } catch (error) {
+        console.error("Save evaluation error:", error);
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                success: false,
+                message: "This project has already been evaluated."
+            });
+        }
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to save evaluation."
+        });
+    }
+});
 module.exports = router;
