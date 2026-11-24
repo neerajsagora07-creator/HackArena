@@ -4,7 +4,7 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const nodemailer = require("nodemailer");
 const mongoose = require("mongoose");
-const Event = require("../models/Event");
+const Event = require("../models/event");
 
 const JudgeInvitation = require("../models/JudgeInvitation");
 const User = require("../models/User");
