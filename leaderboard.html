@@ -1,0 +1,92 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>HackArena | Public Leaderboard</title>
+
+    <link rel="stylesheet" href="./leaderboard.css">
+    <script src="./leaderboard.js" defer></script>
+</head>
+
+<body>
+
+    <header class="header">
+        <a href="./index.html" class="brand">
+            <span class="brand-icon">H</span>
+            <span>HackArena</span>
+        </a>
+
+        <span class="team-credit">By Team Nexora</span>
+    </header>
+
+    <main class="main">
+
+        <section class="intro">
+            <span class="eyebrow">HACKARENA · LIVE RESULTS</span>
+
+            <h1>Public <span>Leaderboard</span></h1>
+
+            <p>
+                Discover the teams leading the arena.
+                Rankings are based on official judge evaluations.
+            </p>
+        </section>
+
+        <section class="leaderboard-card">
+
+            <div class="card-header">
+                <div>
+                    <h2>Team Rankings</h2>
+                    <p id="leaderboard-count">Loading results...</p>
+                </div>
+
+                <button type="button" id="refresh-button">
+                    Refresh Results
+                </button>
+            </div>
+
+            <p id="leaderboard-status" role="status">
+                Loading leaderboard...
+            </p>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Team</th>
+                            <th>Project</th>
+                            <th>Score</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="leaderboard-list"></tbody>
+                </table>
+            </div>
+
+            <div id="leaderboard-empty" hidden>
+                <h3>No evaluated projects yet</h3>
+                <p>
+                    Rankings will appear when judges
+                    complete project evaluations.
+                </p>
+            </div>
+
+        </section>
+
+        <a href="./index.html" class="back-link">
+            ← Back to HackArena
+        </a>
+
+    </main>
+
+    <footer>
+        Intelligent Hackathon Event Management
+        & Evaluation System · Team Nexora
+    </footer>
+
+</body>
+</html>

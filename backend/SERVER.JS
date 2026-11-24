@@ -20,7 +20,7 @@ const teamRoutes = require("./routes/teamRoutes");
 const problemRoutes = require("./routes/problemRoutes");
 const submissionRoutes = require("./routes/submissionRoutes");
 const judgeRoutes = require("./routes/judgeRoutes");
-
+const leaderboardRoutes = require("./routes/leaderboardRoutes");
 // HOME ROUTE
 
 app.get("/", (req, res) => {
@@ -64,7 +64,9 @@ app.use("/api/submissions", submissionRoutes);
 // JUDGE API
 
 app.use("/api/judges", judgeRoutes);
+// PUBLIC LEADERBOARD API
 
+app.use("/api/leaderboard", leaderboardRoutes);
 // MONGODB CONNECTION
 
 async function startServer() {
@@ -102,7 +104,7 @@ async function startServer() {
             console.log("Problem API: /api/problems");
             console.log("Submission API: /api/submissions");
             console.log("Judge API: /api/judges");
-
+console.log("Leaderboard API: /api/leaderboard");
         });
 
     } catch (error) {
