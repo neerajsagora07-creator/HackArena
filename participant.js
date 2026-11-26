@@ -1,4 +1,3 @@
-
 "use strict";
 
 document.documentElement.style.visibility = "hidden";
@@ -211,7 +210,6 @@ function updateSelectedProblem() {
   }
 }
 
-
 // ---------------------------------
 // SELECT PROBLEM
 // ---------------------------------
@@ -296,7 +294,6 @@ async function selectProblem(problem, button) {
   }
 }
 
-
 // ---------------------------------
 // CANCEL SELECTED PROBLEM
 // ---------------------------------
@@ -379,7 +376,6 @@ async function cancelProblemSelection(button) {
     button.textContent = "Cancel Selection";
   }
 }
-
 
 // ---------------------------------
 // RENDER PROBLEM STATEMENTS
@@ -482,7 +478,6 @@ function renderProblems() {
     list.append(card);
   });
 }
-
 
 // ---------------------------------
 // LOAD PUBLISHED PROBLEMS
@@ -748,8 +743,6 @@ matchingForm.addEventListener("submit", async (event) => {
         button.textContent = "Find matches";
     }
 });
-
-
 // ---------------------------------
 // PROJECT SUBMISSION INTEGRATION
 // ---------------------------------
@@ -761,9 +754,80 @@ const readinessResult = document.getElementById("readiness-result");
 
 let existingPresentation = null;
 
+const downloadPresentationButton =
+    document.getElementById("download-presentation");
+
+
 function getSubmissionToken() {
     return sessionStorage.getItem("hackarenaTeamToken");
 }
+
+downloadPresentationButton.addEventListener("click", async () => {
+
+    const token = getSubmissionToken();
+
+    if (!token) {
+        showSubmissionMessage("Please login again.");
+        return;
+    }
+
+    if (!existingPresentation?.fileName) {
+        showSubmissionMessage("No presentation available.");
+        return;
+    }
+
+    downloadPresentationButton.disabled = true;
+    downloadPresentationButton.textContent = "Downloading...";
+
+    try {
+
+        const response = await fetch(
+            window.HACKARENA_API +
+            "/api/submissions/presentation/" +
+            encodeURIComponent(existingPresentation.fileName),
+            {
+                method: "GET",
+                headers: {
+                    Authorization: "Bearer " + token
+                }
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error("Unable to download presentation.");
+        }
+
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+
+        const link = document.createElement("a");
+
+        link.href = url;
+        link.download =
+            existingPresentation.originalName ||
+            existingPresentation.fileName;
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+        showSubmissionMessage("Presentation downloaded successfully!", true);
+
+    } catch (error) {
+
+        showSubmissionMessage(error.message);
+
+    } finally {
+
+        downloadPresentationButton.disabled = false;
+        downloadPresentationButton.textContent =
+            "Download Uploaded Presentation";
+
+    }
+
+});
 
 function isWebAddress(value) {
     try {
@@ -831,7 +895,13 @@ function showSubmissionMessage(message, success = false) {
 function validatePresentationFile() {
     const file = presentationInput.files[0];
 
-    if (!file) return true;
+    if (!file) {
+        fileStatus.textContent = existingPresentation?.originalName
+            ? "Uploaded presentation: " + existingPresentation.originalName
+            : "No file selected";
+
+        return true;
+    }
 
     const extension = file.name.split(".").pop().toLowerCase();
     const allowed = ["pdf", "ppt", "pptx"];
@@ -839,12 +909,22 @@ function validatePresentationFile() {
     if (!allowed.includes(extension)) {
         showSubmissionMessage("Only PDF, PPT and PPTX files are allowed.");
         presentationInput.value = "";
+
+        fileStatus.textContent = existingPresentation?.originalName
+            ? "Uploaded presentation: " + existingPresentation.originalName
+            : "No file selected";
+
         return false;
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-        showSubmissionMessage("Presentation must be 10 MB or smaller.");
+    if (file.size > 5 * 1024 * 1024) {
+        showSubmissionMessage("Presentation must be 5 MB or smaller.");
         presentationInput.value = "";
+
+        fileStatus.textContent = existingPresentation?.originalName
+            ? "Uploaded presentation: " + existingPresentation.originalName
+            : "No file selected";
+
         return false;
     }
 
@@ -895,6 +975,8 @@ document.getElementById("save-draft").addEventListener("click", async () => {
         if (!response.ok || !result.success) {
             throw new Error(result.message || "Draft could not be saved.");
         }
+
+        presentationInput.value = "";
 
         showSubmissionMessage("Draft saved successfully!", true);
         await loadMySubmission();
@@ -973,6 +1055,8 @@ submissionForm.addEventListener("submit", async (event) => {
             throw new Error(result.message || "Submission failed.");
         }
 
+        presentationInput.value = "";
+
         showSubmissionMessage("Project submitted successfully!", true);
 
         await loadMySubmission();
@@ -993,7 +1077,9 @@ submissionForm.addEventListener("submit", async (event) => {
     } catch (error) {
         showSubmissionMessage(error.message);
     } finally {
-        button.disabled = false;
+        button.disabled =
+            participantState.achievements.submission === true;
+
         button.textContent = "Final Submission";
     }
 });
@@ -1025,6 +1111,9 @@ async function loadMySubmission() {
         if (!result.submissions.length) {
             participantState.submissionStatus = "Not submitted";
             existingPresentation = null;
+downloadPresentationButton.hidden = true;
+            fileStatus.textContent = "No file selected";
+
             updateSubmissionStatus();
             return;
         }
@@ -1047,12 +1136,16 @@ async function loadMySubmission() {
             Array.isArray(submission.technologies)
                 ? submission.technologies.join(", ")
                 : "";
+existingPresentation = submission.presentation || null;
 
-        existingPresentation = submission.presentation || null;
+downloadPresentationButton.hidden =
+    !existingPresentation?.fileName;
 
         if (existingPresentation?.originalName) {
             fileStatus.textContent =
                 "Uploaded presentation: " + existingPresentation.originalName;
+        } else {
+            fileStatus.textContent = "No file selected";
         }
 
         participantState.submissionStatus =
@@ -1146,7 +1239,6 @@ async function loadLeaderboard() {
         leaderboardEmpty.textContent = error.message;
     }
 }
-
 
 // ---------------------------------
 // SUBMISSION STATUS
@@ -1310,12 +1402,12 @@ function initializeDashboard() {
   renderProblems();
   loadAvailableProblems();
 
- updateSubmissionStatus();
-loadMySubmission();
-loadLeaderboard();
+  updateSubmissionStatus();
+  loadMySubmission();
+  loadLeaderboard();
 
-updateProgressTracker();
-updateAchievements();
+  updateProgressTracker();
+  updateAchievements();
 }
 
 // ====================================
@@ -1449,7 +1541,6 @@ async function loadAuthenticatedTeam() {
 }
 
 loadAuthenticatedTeam();
-
 // LIVE HACKATHON COUNTDOWN
 
 (() => {
@@ -1570,30 +1661,32 @@ async function loadSubmissionDeadline() {
         if (!response.ok || !data.success) {
             throw new Error("Deadline unavailable");
         }
-const submissionStatus = String(
-    data.submissions[0]?.status || ""
-).toLowerCase();
 
-const permanentlyLocked =
-    submissionStatus === "submitted" ||
-    submissionStatus === "evaluated";
+        const submissionStatus = String(
+            data.submissions[0]?.status || ""
+        ).toLowerCase();
 
-const isLocked =
-    !data.submissionOpen || permanentlyLocked;
+        const permanentlyLocked =
+            submissionStatus === "submitted" ||
+            submissionStatus === "evaluated";
 
-submissionForm.querySelectorAll("input, textarea")
-    .forEach(element => {
-        element.disabled = isLocked;
-    });
+        const isLocked =
+            !data.submissionOpen || permanentlyLocked;
 
-document.getElementById("save-draft").disabled =
-    isLocked;
+        submissionForm.querySelectorAll("input, textarea")
+            .forEach(element => {
+                element.disabled = isLocked;
+            });
 
-document.getElementById("check-readiness").disabled =
-    isLocked;
+        document.getElementById("save-draft").disabled =
+            isLocked;
 
-document.getElementById("final-submit").disabled =
-    isLocked;
+        document.getElementById("check-readiness").disabled =
+            isLocked;
+
+        document.getElementById("final-submit").disabled =
+            isLocked;
+
         if (!data.effectiveDeadline) {
             message.textContent =
                 "Submission deadline not configured.";
@@ -1616,9 +1709,9 @@ document.getElementById("final-submit").disabled =
         }
 
         if (data.extraSeconds > 0) {
-    message.textContent +=
-        " | Individual deadline extension applied";
-}
+            message.textContent +=
+                " | Individual deadline extension applied";
+        }
 
     } catch (error) {
         message.textContent =
@@ -1846,49 +1939,48 @@ async function loadSystemNotifications() {
         }
 
         const submission = data.submissions[0];
-        
+
         participantState.achievements.registration = true;
 
-participantState.achievements.problem =
-    Boolean(participantState.selectedProblem);
+        participantState.achievements.problem =
+            Boolean(participantState.selectedProblem);
 
-participantState.achievements.submission =
-    submission?.status === "submitted" ||
-    submission?.status === "evaluated";
+        participantState.achievements.submission =
+            submission?.status === "submitted" ||
+            submission?.status === "evaluated";
 
-participantState.achievements.evaluation =
-    submission?.status === "evaluated";
+        participantState.achievements.evaluation =
+            submission?.status === "evaluated";
 
-updateAchievements();
+        updateAchievements();
 
-if (officialResultsPublished) {
+        if (officialResultsPublished) {
 
-    participantState.currentStage = "Results";
+            participantState.currentStage = "Results";
 
-} else if (submission?.status === "evaluated") {
+        } else if (submission?.status === "evaluated") {
 
-    participantState.currentStage = "Judging";
+            participantState.currentStage = "Judging";
 
-} else if (submission?.status === "submitted") {
+        } else if (submission?.status === "submitted") {
 
-    participantState.currentStage = "Judging";
+            participantState.currentStage = "Judging";
 
-} else if (submission?.status === "draft") {
+        } else if (submission?.status === "draft") {
 
-    participantState.currentStage = "Development";
+            participantState.currentStage = "Development";
 
-} else if (participantState.selectedProblem) {
+        } else if (participantState.selectedProblem) {
 
-    participantState.currentStage = "Development";
+            participantState.currentStage = "Development";
 
-} else {
+        } else {
 
-    participantState.currentStage = "Problem";
+            participantState.currentStage = "Problem";
 
-}
+        }
 
-updateProgressTracker();
-
+        updateProgressTracker();
 
         if (submission) {
 
@@ -2038,7 +2130,7 @@ document.querySelector('[data-page="updates"]')
 
     });
 
-    // OFFICIAL RESULTS STATUS
+// OFFICIAL RESULTS STATUS
 
 let officialResultsPublished = false;
 
@@ -2058,31 +2150,34 @@ async function loadOfficialResultsStatus() {
         }
 
         officialResultsPublished = data.resultsPublished === true;
+
         const status = document.getElementById(
-    "participant-results-status"
-);
+            "participant-results-status"
+        );
 
-const date = document.getElementById(
-    "participant-results-date"
-);
+        const date = document.getElementById(
+            "participant-results-date"
+        );
 
-if (officialResultsPublished) {
+        if (officialResultsPublished) {
 
-    status.textContent = "Official Results Published";
-    status.style.color = "#16a34a";
+            status.textContent = "Official Results Published";
+            status.style.color = "#16a34a";
 
-    date.textContent = "Published on: " +
-        new Date(data.resultsPublishedAt)
-            .toLocaleString("en-IN");
+            date.textContent = "Published on: " +
+                new Date(data.resultsPublishedAt)
+                    .toLocaleString("en-IN");
 
-} else {
+        } else {
 
-    status.textContent = "Provisional Leaderboard - Results Not Published";
-    status.style.color = "#d97706";
+            status.textContent =
+                "Provisional Leaderboard - Results Not Published";
 
-    date.textContent = "";
+            status.style.color = "#d97706";
 
-}
+            date.textContent = "";
+
+        }
 
         if (officialResultsPublished) {
 
@@ -2103,6 +2198,7 @@ if (officialResultsPublished) {
 loadOfficialResultsStatus();
 
 setInterval(loadOfficialResultsStatus, 5000);
+
 // ---------------------------------
 // BACKEND INTEGRATION NOTES
 // ---------------------------------
