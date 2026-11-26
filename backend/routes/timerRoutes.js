@@ -1,6 +1,6 @@
 const express = require("express");
 const Event = require("../models/event");
-const Team = require("../models/Team");
+const Team = require("../models/team");
 const requireOrganizer = require("../middleware/requireOrganizer");
 
 const router = express.Router();

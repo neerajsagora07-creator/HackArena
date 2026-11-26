@@ -1,8 +1,8 @@
 const express = require("express");
 const Announcement = require("../models/announcement");
 const nodemailer = require("nodemailer");
-const Team = require("../models/Team");
-const User = require("../models/User");
+const Team = require("../models/team");
+const User = require("../models/user");
 
 const requireOrganizer = require("../middleware/requireOrganizer");
 const requireParticipant = require("../middleware/requireParticipant");

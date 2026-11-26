@@ -1,5 +1,5 @@
 const express = require("express");
-const Team = require("../models/Team");
+const Team = require("../models/team");
 const Problem = require("../models/problem");
 const Submission = require("../models/submission");
 const requireOrganizer = require("../middleware/requireOrganizer");

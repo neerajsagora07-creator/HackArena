@@ -8,7 +8,7 @@ const rateLimit = require("express-rate-limit");
 
 
 const Event = require("../models/event");
-const Team = require("../models/Team");
+const Team = require("../models/team");
 const Problem = require("../models/problem");
 
 const router = express.Router();

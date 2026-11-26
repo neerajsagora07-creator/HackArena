@@ -5,7 +5,7 @@ const multer = require("multer");
 const pdfParse = require("pdf-parse");
 
 const Problem = require("../models/problem");
-const Team = require("../models/Team");
+const Team = require("../models/team");
 
 const requireOrganizer = require("../middleware/requireOrganizer");
 const requireParticipant = require("../middleware/requireParticipant");

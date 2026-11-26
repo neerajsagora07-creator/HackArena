@@ -7,11 +7,11 @@ const mongoose = require("mongoose");
 const Event = require("../models/event");
 
 const JudgeInvitation = require("../models/JudgeInvitation");
-const User = require("../models/User");
+const User = require("../models/user");
 const requireOrganizer = require("../middleware/requireOrganizer");
 
 const Submission = require("../models/submission");
-const JudgeAssignment = require("../models/JudgeAssignment");
+const JudgeAssignment = require("../models/judgeAssignment");
 const Evaluation = require("../models/Evaluation");
 
 const requireJudge = require("../middleware/requireJudge");
