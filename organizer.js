@@ -112,7 +112,7 @@ const settingsForm =
   document.getElementById("settings-form");
 
 // Same-browser fallback for event branding.
-const eventApiUrl = "http://127.0.0.1:5000/api/event";
+const eventApiUrl = window.HACKARENA_API + "/api/event";
 let eventSettingsRevision = 0;
 let eventSettingsSaving = false;
 settingsForm.addEventListener("input", () => { eventSettingsRevision++; });
@@ -620,7 +620,7 @@ async function loadTeams() {
         );
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/teams/organizer/roster",
+            window.HACKARENA_API + "/api/teams/organizer/roster",
             {
                 method: "GET",
                 headers: {
@@ -700,8 +700,8 @@ problemForm.addEventListener("submit", async (event) => {
 
     const isEditing = editingProblemId !== null;
     const url = isEditing
-        ? "http://127.0.0.1:5000/api/problems/" + editingProblemId
-        : "http://127.0.0.1:5000/api/problems";
+        ? window.HACKARENA_API + "/api/problems/" + editingProblemId
+        : window.HACKARENA_API + "/api/problems";
     const method = isEditing ? "PUT" : "POST";
 
     submitButton.disabled = true;
@@ -735,7 +735,7 @@ problemForm.addEventListener("submit", async (event) => {
 
         if (isEditing && Boolean(savedProblem.isPublished) !== isPublished) {
             const visibilityResponse = await fetch(
-                "http://127.0.0.1:5000/api/problems/" + editingProblemId + "/publish",
+                window.HACKARENA_API + "/api/problems/" + editingProblemId + "/publish",
                 {
                     method: "PATCH",
                     headers: {
@@ -894,7 +894,7 @@ function renderProblems() {
 
             try {
                 const response = await fetch(
-                    "http://127.0.0.1:5000/api/problems/" + problemId + "/publish",
+                    window.HACKARENA_API + "/api/problems/" + problemId + "/publish",
                     {
                         method: "PATCH",
                         headers: {
@@ -965,7 +965,7 @@ function renderProblems() {
 
             try {
                 const response = await fetch(
-                    "http://127.0.0.1:5000/api/problems/" + problemId,
+                    window.HACKARENA_API + "/api/problems/" + problemId,
                     {
                         method: "DELETE",
                         headers: {
@@ -1103,7 +1103,7 @@ uploadPdfButton.addEventListener("click", async () => {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/problems/import/pdf/preview",
+            window.HACKARENA_API + "/api/problems/import/pdf/preview",
             {
                 method: "POST",
                 headers: {
@@ -1219,7 +1219,7 @@ confirmPdfImportButton.addEventListener("click", async () => {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/problems/import/pdf/confirm",
+            window.HACKARENA_API + "/api/problems/import/pdf/confirm",
             {
                 method: "POST",
                 headers: {
@@ -1267,7 +1267,7 @@ confirmPdfImportButton.addEventListener("click", async () => {
 // JUDGE INVITATIONS
 // ---------------------------------
 
-const judgeApiUrl = "http://127.0.0.1:5000/api/judges";
+const judgeApiUrl = window.HACKARENA_API + "/api/judges";
 
 const judgeForm = document.getElementById("judge-form");
 
@@ -1567,7 +1567,7 @@ async function controlTimer(action, hours = 0, minutes = 0) {
         );
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/event/timer",
+            window.HACKARENA_API + "/api/event/timer",
             {
                 method: "POST",
                 headers: {
@@ -1754,7 +1754,7 @@ try {
     );
 
     const response = await fetch(
-        "http://127.0.0.1:5000/api/event/timer/extra-time",
+        window.HACKARENA_API + "/api/event/timer/extra-time",
         {
             method: "POST",
 
@@ -2238,7 +2238,7 @@ announcementForm.addEventListener("input", () => {
 // ---------------------------------
 
 const announcementApiUrl =
-  "http://127.0.0.1:5000/api/announcements";
+  window.HACKARENA_API + "/api/announcements";
 
 announcementForm.addEventListener("submit", async (event) => {
 
@@ -2545,7 +2545,7 @@ async function loadLiveAnalytics() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/analytics",
+            window.HACKARENA_API + "/api/analytics",
             {
                 headers: {
                     Authorization: "Bearer " + token
@@ -2656,7 +2656,7 @@ async function loadProblems() {
         }
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/problems/organizer/all",
+            window.HACKARENA_API + "/api/problems/organizer/all",
             {
                 method: "GET",
                 headers: {
@@ -2728,7 +2728,7 @@ async function verifyOrganizerLogin() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/auth/organizer/me",
+            window.HACKARENA_API + "/api/auth/organizer/me",
             {
                 method: "GET",
                 headers: {
@@ -2821,7 +2821,7 @@ let timerServerOffset = 0;
 async function loadLiveTimer() {
     try {
         const response = await fetch(
-            "http://127.0.0.1:5000/api/event/timer",
+            window.HACKARENA_API + "/api/event/timer",
             { cache: "no-store" }
         );
 
@@ -3100,7 +3100,7 @@ async function loadResultsStatus() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/results",
+            window.HACKARENA_API + "/api/results",
             { cache: "no-store" }
         );
 
@@ -3166,7 +3166,7 @@ publishResultsBtn.addEventListener("click", async () => {
         );
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/results/publish",
+            window.HACKARENA_API + "/api/results/publish",
             {
                 method: "POST",
                 headers: {
