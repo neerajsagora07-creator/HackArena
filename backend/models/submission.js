@@ -47,10 +47,16 @@ const submissionSchema = new mongoose.Schema({
     }],
 
     presentation: {
-        originalName: {
-            type: String,
-            default: ""
-        },
+
+    gridFsId: {
+        type: mongoose.Schema.Types.ObjectId,
+        default: null
+    },
+
+    originalName: {
+        type: String,
+        default: ""
+    },
         fileName: {
             type: String,
             default: ""
