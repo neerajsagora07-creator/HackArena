@@ -7,8 +7,7 @@
 // ==========================================
 
 (function () {
-
-  const eventApiUrl = "http://127.0.0.1:5000/api/event";
+const eventApiUrl = window.HACKARENA_API + "/api/event";
 
   const storageKey =
     "hackarena-current-event-branding-v1";
