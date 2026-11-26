@@ -1350,7 +1350,8 @@ const token = sessionStorage.getItem("hackarenaOrganizerToken");
             throw new Error(data.message || "Invitation failed.");
         }
 
-        status.textContent = data.message;
+        status.textContent = data.message +
+    (data.emailStatus ? " | " + data.emailStatus : "");
 
         judgeForm.reset();
 
@@ -2236,7 +2237,10 @@ announcementForm.addEventListener("input", () => {
 // PUBLISH ANNOUNCEMENT
 // ---------------------------------
 
-announcementForm.addEventListener("submit", (event) => {
+const announcementApiUrl =
+  "http://127.0.0.1:5000/api/announcements";
+
+announcementForm.addEventListener("submit", async (event) => {
 
   event.preventDefault();
 
@@ -2244,36 +2248,335 @@ announcementForm.addEventListener("submit", (event) => {
     return;
   }
 
-  document.getElementById("announcement-status")
-    .textContent =
-    "Announcement details checked. " +
-    "No announcement has been published or sent. " +
-    "The backend will save and distribute it.";
+  const status =
+    document.getElementById("announcement-status");
+
+  const button =
+    announcementForm.querySelector('button[type="submit"]');
+
+  const announcement = {
+
+    title: document.getElementById(
+      "announcement-title"
+    ).value.trim(),
+
+    message: document.getElementById(
+      "announcement-message"
+    ).value.trim(),
+
+    audience: document.getElementById(
+      "announcement-audience"
+    ).value,
+
+    priority: document.getElementById(
+      "announcement-priority"
+    ).value
+
+  };
+
+  if (!announcement.title || !announcement.message) {
+    status.textContent = "Enter title and message.";
+    return;
+  }
+
+  if (!confirm("Publish this announcement to the selected audience?")) {
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = "Publishing...";
+
+  status.textContent = "Publishing announcement...";
+
+  try {
+
+    const response = await fetch(announcementApiUrl, {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " +
+          sessionStorage.getItem("hackarenaOrganizerToken")
+      },
+
+      body: JSON.stringify(announcement)
+
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message);
+    }
+
+    status.textContent = data.message;
+    status.style.color = "green";
+
+    if (data.emailStatus) {
+      status.textContent += " | " + data.emailStatus;
+    }
+
+    announcementForm.reset();
+
+    document.getElementById(
+      "announcement-preview"
+    ).hidden = true;
+
+    await loadAnnouncementHistory();
+
+  } catch (error) {
+
+    status.textContent = error.message;
+    status.style.color = "red";
+
+  } finally {
+
+    button.disabled = false;
+    button.textContent = "Publish Announcement";
+
+  }
+
 });
 
+
+// ---------------------------------
+// ANNOUNCEMENT HISTORY
+// ---------------------------------
+
+async function loadAnnouncementHistory() {
+
+  const history =
+    document.getElementById("announcement-history");
+
+  try {
+
+    const response = await fetch(announcementApiUrl, {
+
+      headers: {
+        "Authorization": "Bearer " +
+          sessionStorage.getItem("hackarenaOrganizerToken")
+      },
+
+      cache: "no-store"
+
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message);
+    }
+
+    history.replaceChildren();
+
+    if (!data.announcements.length) {
+
+      history.textContent = "No announcements published yet.";
+      return;
+
+    }
+
+    data.announcements.forEach(announcement => {
+
+      const card = document.createElement("article");
+
+      card.className = "empty-state";
+      card.style.marginTop = "15px";
+
+      const title = document.createElement("h3");
+      title.textContent = announcement.title;
+
+      const message = document.createElement("p");
+      message.textContent = announcement.message;
+
+      const audience = document.createElement("p");
+      audience.textContent =
+        "Audience: " + announcement.audience.toUpperCase();
+
+      const priority = document.createElement("strong");
+      priority.textContent =
+        "Priority: " + announcement.priority.toUpperCase();
+
+      priority.style.color =
+        announcement.priority === "urgent"
+          ? "red"
+          : announcement.priority === "important"
+          ? "orange"
+          : "green";
+
+      const date = document.createElement("p");
+
+      date.textContent =
+        "Published: " +
+        new Date(announcement.createdAt).toLocaleString("en-IN");
+
+      const deleteButton = document.createElement("button");
+
+      deleteButton.type = "button";
+      deleteButton.className = "button secondary";
+      deleteButton.textContent = "Delete Announcement";
+
+      deleteButton.addEventListener("click", () => {
+        deleteAnnouncement(announcement._id);
+      });
+
+      card.append(
+        title,
+        message,
+        audience,
+        priority,
+        date,
+        deleteButton
+      );
+
+      history.append(card);
+
+    });
+
+  } catch (error) {
+
+    history.textContent =
+      "Unable to load announcements: " + error.message;
+
+  }
+
+}
+
+
+// ---------------------------------
+// DELETE ANNOUNCEMENT
+// ---------------------------------
+
+async function deleteAnnouncement(id) {
+
+  if (!confirm(
+    "Delete this announcement from dashboards? Already sent emails cannot be recalled."
+  )) {
+    return;
+  }
+
+  try {
+
+    const response = await fetch(
+      announcementApiUrl + "/" + id,
+      {
+        method: "DELETE",
+
+        headers: {
+          "Authorization": "Bearer " +
+            sessionStorage.getItem("hackarenaOrganizerToken")
+        }
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+      throw new Error(data.message);
+    }
+
+    await loadAnnouncementHistory();
+
+    alert("Announcement deleted successfully.");
+
+  } catch (error) {
+
+    alert(error.message);
+
+  }
+
+}
+
+if (sessionStorage.getItem("hackarenaOrganizerToken")) {
+  loadAnnouncementHistory();
+}
 // ---------------------------------
 // ANALYTICS
 // ---------------------------------
 
 function updateAnalytics(stats) {
 
-  const fields = {
-    "analytics-teams": "totalTeams",
-    "analytics-submissions": "totalSubmissions",
-    "analytics-full": "fullProblems",
-    "analytics-judging": "judgingStatus",
-    "analytics-progress": "overallProgress"
-  };
+    const fields = {
+        "analytics-teams": "totalTeams",
+        "analytics-submissions": "totalSubmissions",
+        "analytics-full": "fullProblems",
+        "analytics-problems": "totalProblems",
+        "analytics-selected": "selectedTeams",
+        "analytics-pending": "pendingSubmissions",
+        "analytics-drafts": "draftSubmissions",
+        "analytics-final": "finalSubmissions",
+        "analytics-evaluated": "evaluatedProjects"
+    };
 
-  Object.entries(fields).forEach(
-    ([elementId, key]) => {
+    Object.entries(fields).forEach(([elementId, key]) => {
 
-      document.getElementById(elementId)
-        .textContent =
-        stats?.[key] ?? "Not loaded";
-    }
-  );
+        const element = document.getElementById(elementId);
+
+        if (element) {
+            element.textContent = stats?.[key] ?? "Not loaded";
+        }
+
+    });
+
+    document.getElementById("analytics-completion").textContent =
+        stats?.submissionCompletion != null
+            ? stats.submissionCompletion + "%"
+            : "Not loaded";
+
+    document.getElementById("analytics-judging").textContent =
+        stats?.evaluationProgress != null
+            ? stats.evaluationProgress + "% Evaluated"
+            : "Not loaded";
+
+    document.getElementById("analytics-progress").textContent =
+        stats?.totalTeams != null
+            ? stats.evaluatedProjects + " of " +
+              stats.totalTeams + " registered teams evaluated"
+            : "Not loaded";
 }
+
+async function loadLiveAnalytics() {
+
+    const token = sessionStorage.getItem("hackarenaOrganizerToken");
+
+    if (!token) return;
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/analytics",
+            {
+                headers: {
+                    Authorization: "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message);
+        }
+
+        updateAnalytics(data.analytics);
+renderAnalyticsCharts(data.analytics);
+
+
+    } catch (error) {
+
+        console.error("Analytics Loading Error:", error);
+
+        document.getElementById("analytics-progress").textContent =
+            "Unable to load analytics";
+
+    }
+}
+
+loadLiveAnalytics();
+
+setInterval(loadLiveAnalytics, 5000);
 
 // ---------------------------------
 // OVERVIEW DATA
@@ -2593,6 +2896,312 @@ loadLiveTimer();
 
 setInterval(loadLiveTimer, 3000);
 setInterval(displayLiveTimer, 1000);
+
+// GRAPHICAL ANALYTICS
+
+function renderAnalyticsCharts(stats) {
+
+    if (!stats) return;
+
+    const canvas = document.getElementById("submission-chart");
+
+    if (canvas) {
+
+        canvas.width = 300;
+        canvas.height = 300;
+
+        const ctx = canvas.getContext("2d");
+
+        ctx.clearRect(0, 0, 300, 300);
+
+        const values = [
+            Math.max(0, stats.pendingSubmissions - stats.draftSubmissions),
+            stats.draftSubmissions,
+            Math.max(0, stats.finalSubmissions - stats.evaluatedProjects),
+            stats.evaluatedProjects
+        ];
+
+        const colors = [
+            "#ef4444",
+            "#f59e0b",
+            "#2563eb",
+            "#16a34a"
+        ];
+
+        const labels = [
+            "Not Submitted",
+            "Draft",
+            "Submitted",
+            "Evaluated"
+        ];
+
+        const total = values.reduce((sum, value) => sum + value, 0);
+
+        let startAngle = -Math.PI / 2;
+
+        if (total > 0) {
+
+            values.forEach((value, index) => {
+
+                if (value <= 0) return;
+
+                const angle = value / total * Math.PI * 2;
+
+                ctx.beginPath();
+
+                ctx.arc(
+                    150, 100, 75,
+                    startAngle,
+                    startAngle + angle
+                );
+
+                ctx.lineWidth = 32;
+                ctx.strokeStyle = colors[index];
+                ctx.stroke();
+
+                startAngle += angle;
+
+            });
+
+        } else {
+
+            ctx.beginPath();
+            ctx.arc(150, 100, 75, 0, Math.PI * 2);
+            ctx.lineWidth = 32;
+            ctx.strokeStyle = "#9ca3af";
+            ctx.stroke();
+
+        }
+
+        const textColor = getComputedStyle(canvas).color;
+
+        ctx.fillStyle = textColor;
+        ctx.textAlign = "center";
+        ctx.font = "bold 28px Arial";
+        ctx.fillText(total, 150, 100);
+
+        ctx.font = "12px Arial";
+        ctx.fillText("Total Teams", 150, 120);
+
+        ctx.textAlign = "left";
+
+        labels.forEach((label, index) => {
+
+            const y = 210 + index * 22;
+
+            ctx.fillStyle = colors[index];
+            ctx.fillRect(40, y - 10, 12, 12);
+
+            ctx.fillStyle = textColor;
+            ctx.font = "13px Arial";
+
+            ctx.fillText(
+                label + ": " + values[index],
+                62,
+                y
+            );
+
+        });
+
+    }
+
+    document.getElementById(
+        "submission-progress-bar"
+    ).style.width = stats.submissionCompletion + "%";
+
+    document.getElementById(
+        "submission-progress-label"
+    ).textContent = stats.submissionCompletion +
+        "% of registered teams have submitted";
+
+    document.getElementById(
+        "evaluation-progress-bar"
+    ).style.width = stats.evaluationProgress + "%";
+
+    document.getElementById(
+        "evaluation-progress-label"
+    ).textContent = stats.evaluationProgress +
+        "% of submitted projects evaluated";
+
+    const distribution = document.getElementById(
+        "problem-distribution"
+    );
+
+    distribution.replaceChildren();
+
+    const problems = [...(stats.problemDistribution || [])];
+
+    problems.sort(
+        (a, b) => b.selectedTeams - a.selectedTeams
+    );
+
+    problems.forEach(problem => {
+
+        const item = document.createElement("div");
+        item.className = "problem-distribution-item";
+
+        const heading = document.createElement("div");
+        heading.className = "problem-distribution-heading";
+
+        const title = document.createElement("span");
+        title.textContent = problem.code + " - " + problem.title;
+
+        const count = document.createElement("strong");
+        count.textContent =
+            problem.selectedTeams + "/" + problem.capacity;
+
+        heading.append(title, count);
+
+        const track = document.createElement("div");
+        track.className = "analytics-progress-track";
+
+        const fill = document.createElement("div");
+
+        fill.className =
+            "analytics-progress-fill problem-distribution-fill";
+
+        const percentage = problem.capacity > 0
+            ? problem.selectedTeams / problem.capacity * 100
+            : 0;
+
+        fill.style.width = Math.min(100, percentage) + "%";
+
+        if (problem.selectedTeams >= problem.capacity) {
+            fill.style.background = "#ef4444";
+        }
+
+        track.append(fill);
+
+        item.append(heading, track);
+
+        distribution.append(item);
+
+    });
+
+}
+
+// OFFICIAL RESULTS PUBLICATION
+
+const publishResultsBtn =
+    document.getElementById("publish-results-btn");
+
+let publishingResults = false;
+
+async function loadResultsStatus() {
+
+    const status = document.getElementById(
+        "results-publication-status"
+    );
+
+    const date = document.getElementById(
+        "results-publication-date"
+    );
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/results",
+            { cache: "no-store" }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message);
+        }
+
+        if (data.resultsPublished) {
+
+            status.textContent = "Official Results Published";
+            status.style.color = "#16a34a";
+
+            date.textContent = "Published on: " +
+                new Date(data.resultsPublishedAt)
+                    .toLocaleString("en-IN");
+
+            publishResultsBtn.disabled = true;
+            publishResultsBtn.textContent = "Results Published";
+
+        } else {
+
+            status.textContent = "Results Not Published";
+            status.style.color = "#d97706";
+
+            date.textContent = "";
+
+            publishResultsBtn.disabled = publishingResults;
+
+        }
+
+    } catch (error) {
+
+        status.textContent = "Unable to load results status";
+        publishResultsBtn.disabled = true;
+
+    }
+
+}
+
+publishResultsBtn.addEventListener("click", async () => {
+
+    const confirmed = confirm(
+        "Are you sure you want to publish the official hackathon results?"
+    );
+
+    if (!confirmed || publishingResults) return;
+
+    const status = document.getElementById(
+        "results-action-status"
+    );
+
+    publishingResults = true;
+    publishResultsBtn.disabled = true;
+
+    status.textContent = "Publishing results...";
+
+    try {
+
+        const token = sessionStorage.getItem(
+            "hackarenaOrganizerToken"
+        );
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/results/publish",
+            {
+                method: "POST",
+                headers: {
+                    Authorization: "Bearer " + token
+                }
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message);
+        }
+
+        status.textContent = data.message;
+        status.style.color = "#16a34a";
+
+    } catch (error) {
+
+        status.textContent = error.message;
+        status.style.color = "#dc2626";
+
+    } finally {
+
+        publishingResults = false;
+        await loadResultsStatus();
+
+    }
+
+});
+
+loadResultsStatus();
+
+setInterval(loadResultsStatus, 5000);
+
 // ---------------------------------
 // FUTURE BACKEND INTEGRATION
 // ---------------------------------

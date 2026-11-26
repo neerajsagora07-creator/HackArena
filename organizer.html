@@ -998,6 +998,34 @@
                       rows="5" required></textarea>
           </div>
 
+          <div class="field">
+  <label for="announcement-audience">Send To</label>
+
+  <select id="announcement-audience" name="audience" required>
+    <option value="all">All Participants & Judges</option>
+    <option value="participants">Participants Only</option>
+    <option value="judges">Judges Only</option>
+  </select>
+</div>
+
+<div class="field">
+  <label for="announcement-priority">Priority</label>
+
+  <select id="announcement-priority" name="priority" required>
+    <option value="normal">Normal</option>
+    <option value="important">Important</option>
+    <option value="urgent">Urgent</option>
+  </select>
+</div>
+
+<div class="empty-state">
+  <h3>Delivery Channels</h3>
+  <p>Dashboard Notification + Email Notification</p>
+  <p>
+    Announcements will be sent to the selected audience.
+  </p>
+</div>
+
           <div class="action-row">
 
             <button id="preview-announcement"
@@ -1023,7 +1051,23 @@
           <p id="preview-message"></p>
 
         </article>
+<article class="panel">
 
+  <span class="eyebrow">PUBLISHED UPDATES</span>
+
+  <h2>Announcement History</h2>
+
+  <p>
+    View and manage previously published announcements.
+  </p>
+
+  <div id="announcement-history">
+
+    <p>No announcements loaded yet.</p>
+
+  </div>
+
+</article>
       </article>
 
     </section>
@@ -1050,6 +1094,41 @@
           </div>
 
           <div>
+    <dt>Total Published Problems</dt>
+    <dd id="analytics-problems">Not loaded</dd>
+</div>
+
+<div>
+    <dt>Teams With Selected Problems</dt>
+    <dd id="analytics-selected">Not loaded</dd>
+</div>
+
+<div>
+    <dt>Pending Submissions</dt>
+    <dd id="analytics-pending">Not loaded</dd>
+</div>
+
+<div>
+    <dt>Draft Submissions</dt>
+    <dd id="analytics-drafts">Not loaded</dd>
+</div>
+
+<div>
+    <dt>Final Submissions</dt>
+    <dd id="analytics-final">Not loaded</dd>
+</div>
+
+<div>
+    <dt>Evaluated Projects</dt>
+    <dd id="analytics-evaluated">Not loaded</dd>
+</div>
+
+<div>
+    <dt>Submission Completion</dt>
+    <dd id="analytics-completion">Not loaded</dd>
+</div>
+
+          <div>
             <dt>Full Problems</dt>
             <dd id="analytics-full">Not loaded</dd>
           </div>
@@ -1066,19 +1145,75 @@
 
         </dl>
 
-        <div class="empty-state">
+        <div class="analytics-charts">
 
-          <h3>Hackathon Health</h3>
+    <article class="analytics-chart-card">
+        <h3>Submission Status</h3>
+        <canvas id="submission-chart"></canvas>
+    </article>
 
-          <p>
-            Event health and progress will be
-            displayed using actual event data.
-            No fake statistics or unconfirmed
-            health formula are used.
-          </p>
+    <article class="analytics-chart-card">
+        <h3>Submission Completion</h3>
 
+        <div class="analytics-progress-track">
+            <div id="submission-progress-bar"
+                 class="analytics-progress-fill">
+            </div>
         </div>
 
+        <p id="submission-progress-label">Not loaded</p>
+
+        <h3>Evaluation Progress</h3>
+
+        <div class="analytics-progress-track">
+            <div id="evaluation-progress-bar"
+                 class="analytics-progress-fill evaluation-fill">
+            </div>
+        </div>
+
+        <p id="evaluation-progress-label">Not loaded</p>
+    </article>
+
+    <article class="analytics-chart-card">
+        <h3>Problem-wise Team Distribution</h3>
+
+        <div id="problem-distribution"></div>
+    </article>
+
+</div>
+
+    <div class="analytics-chart-card">
+    <span class="eyebrow">OFFICIAL RESULTS</span>
+
+    <h2>Final Results Publication</h2>
+
+    <p>
+        Publish official hackathon results after the
+        submission deadline and completion of all evaluations.
+    </p>
+
+    <div class="empty-state">
+        <h3>Publication Status</h3>
+
+        <p id="results-publication-status">
+            Checking results status...
+        </p>
+
+        <p id="results-publication-date"></p>
+    </div>
+
+    <button type="button"
+            class="button"
+            id="publish-results-btn"
+            disabled>
+        Publish Final Results
+    </button>
+
+    <p id="results-action-status"
+       class="status"
+       role="status">
+    </p>
+</div>
       </article>
 
     </section>
