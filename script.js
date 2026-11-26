@@ -5,7 +5,7 @@
 // HACKARENA API SETTINGS
 // ====================================
 
-const API_URL = "http://127.0.0.1:5000/api/teams";
+const API_URL = window.HACKARENA_API + "/api/teams";
 
 const eventSettings = {
     maxMembersPerTeam: 6
@@ -136,7 +136,7 @@ document.querySelectorAll(".login-form").forEach((form) => {
             try {
 
                 const response = await fetch(
-                    "http://127.0.0.1:5000/api/auth/organizer/login",
+                    window.HACKARENA_API + "/api/auth/organizer/login",
                     {
                         method: "POST",
                         headers: {
@@ -214,7 +214,7 @@ document.querySelectorAll(".login-form").forEach((form) => {
             try {
 
                 const response = await fetch(
-                    "http://127.0.0.1:5000/api/auth/organizer/login",
+                    window.HACKARENA_API + "/api/auth/organizer/login",
                     {
                         method: "POST",
                         headers: {
@@ -288,7 +288,7 @@ document.querySelectorAll(".login-form").forEach((form) => {
 
     try {
         const response = await fetch(
-            "http://127.0.0.1:5000/api/auth/judge/login",
+            window.HACKARENA_API + "/api/auth/judge/login",
             {
                 method: "POST",
                 headers: {
@@ -350,7 +350,7 @@ if (role === "Judge") {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/auth/judge/login",
+            window.HACKARENA_API + "/api/auth/judge/login",
             {
                 method: "POST",
                 headers: {
