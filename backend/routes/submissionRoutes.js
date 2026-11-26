@@ -378,9 +378,10 @@ router.get("/my-submission", requireParticipant, async (req, res) => {
             )
             : null;
 
-        const submissionOpen = effectiveDeadline
-            ? Date.now() < effectiveDeadline.getTime()
-            : false;
+       const submissionOpen =
+    !event?.resultsPublished &&
+    effectiveDeadline !== null &&
+    Date.now() < effectiveDeadline.getTime();
 
         res.json({
             success: true,
