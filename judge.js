@@ -72,6 +72,7 @@ const judgeData = {
 };
 
 let judgeResultsPublished = false;
+let selectedSubmission = null;
 
 // ---------------------------------
 // JUDGING CRITERIA
@@ -362,9 +363,15 @@ async function loadAssignedProjects() {
                 submissionStatus: submission.status,
                 githubLink: submission.githubUrl || "",
                 demoLink: submission.liveDemoUrl || "",
-                presentationUrl: "",
-                problemStatement: "",
-                members: []
+                presentationName: submission.presentation?.originalName || "",
+presentationFileName: submission.presentation?.fileName || "",
+projectDescription: submission.description || "",
+technologies: submission.technologies || "",
+                problemStatement: problem.statement || "",
+              members: [...new Set([
+    team.leaderName,
+    ...(team.memberNames || [])
+].filter(Boolean))]
             };
         });
 
@@ -401,6 +408,108 @@ function setText(id, value) {
 
     document.getElementById(id).textContent =
         String(value ?? "—");
+}
+
+function showPresentation(submission) {
+
+    const container = document.getElementById("ppt-resource");
+
+    container.replaceChildren();
+
+    if (!submission.presentationFileName) {
+        container.textContent = "Presentation not available";
+        return;
+    }
+
+    const fileName = document.createElement("p");
+
+    fileName.textContent =
+        submission.presentationName || submission.presentationFileName;
+
+    const button = document.createElement("button");
+
+    button.type = "button";
+    button.className = "table-action";
+    button.textContent = "Download Presentation";
+
+    const status = document.createElement("small");
+
+    status.setAttribute("role", "status");
+
+    button.addEventListener("click", async () => {
+
+        const token = sessionStorage.getItem("hackarenaJudgeToken");
+
+        if (!token) {
+            window.location.replace("./index.html");
+            return;
+        }
+
+        button.disabled = true;
+        button.textContent = "Downloading...";
+        status.textContent = "";
+
+        try {
+
+            const response = await fetch(
+                window.HACKARENA_API +
+                "/api/judges/presentation/" +
+                encodeURIComponent(submission.submissionId),
+                {
+                    method: "GET",
+                    headers: {
+                        "Authorization": "Bearer " + token
+                    },
+                    cache: "no-store"
+                }
+            );
+
+            if (!response.ok) {
+
+                const data = await response.json().catch(() => ({}));
+
+                throw new Error(
+                    data.message || "Unable to download presentation."
+                );
+            }
+
+            const blob = await response.blob();
+
+            const url = URL.createObjectURL(blob);
+
+            const link = document.createElement("a");
+
+            link.href = url;
+
+            link.download =
+                submission.presentationName ||
+                submission.presentationFileName;
+
+            document.body.append(link);
+
+            link.click();
+
+            link.remove();
+
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+            status.textContent = "Presentation downloaded successfully.";
+
+        } catch (error) {
+
+            console.error("Presentation Download Error:", error);
+
+            status.textContent = error.message;
+
+        } finally {
+
+            button.disabled = false;
+
+            button.textContent = "Download Presentation";
+        }
+    });
+
+    container.append(fileName, button, status);
 }
 
 function showResource(elementId, url, label) {
@@ -524,6 +633,15 @@ async function selectProject(submission) {
     setText("detail-code", submission.problemCode);
     setText("detail-problem", submission.problemTitle);
     setText("detail-project", submission.projectName);
+    setText(
+    "detail-description",
+    submission.projectDescription || "No description provided."
+);
+
+setText(
+    "detail-technologies",
+    submission.technologies || "No technologies provided."
+);
 
     setText(
         "detail-submission-status",
@@ -548,11 +666,7 @@ async function selectProject(submission) {
         "Open Project Demo ↗"
     );
 
-    showResource(
-        "ppt-resource",
-        submission.presentationUrl,
-        "View Presentation ↗"
-    );
+   showPresentation(submission);
 
     document.getElementById("evaluate-selected").disabled = false;
 
