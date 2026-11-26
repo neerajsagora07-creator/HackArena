@@ -12,6 +12,7 @@ const Problem = require("../models/problem");
 const Event = require("../models/event");
 
 const requireParticipant = require("../middleware/requireParticipant");
+const requireOrganizer = require("../middleware/requireOrganizer");
 const getGridFSBucket = require("../utils/gridfs");
 
 const uploadFolder = path.join(__dirname, "../uploads/presentations");
@@ -950,7 +951,221 @@ router.get(
     }
 );
 
+// GET ALL SUBMITTED PROJECTS FOR ORGANIZER
 
+router.get(
+    "/organizer/all",
+    requireOrganizer,
+
+    async (req, res) => {
+
+        try {
+
+            const submissions = await Submission.find({
+                status: {
+                    $in: ["submitted", "evaluated"]
+                }
+            })
+            .populate("team", "teamName teamId leaderName")
+            .populate("problem", "code title")
+            .sort({ submittedAt: -1 })
+            .lean();
+
+            res.json({
+                success: true,
+                count: submissions.length,
+                submissions: submissions
+            });
+
+        } catch (error) {
+
+            console.error(
+                "Organizer Submission Error:",
+                error
+            );
+
+            res.status(500).json({
+                success: false,
+                message: "Unable to load submitted projects."
+            });
+
+        }
+    }
+);
+// SECURE PRESENTATION DOWNLOAD FOR ORGANIZER
+
+router.get(
+    "/organizer/presentation/:filename",
+    requireOrganizer,
+
+    async (req, res) => {
+
+        try {
+
+            const filename = req.params.filename;
+
+            if (
+                path.basename(filename) !== filename ||
+                filename.includes("\\") ||
+                filename === "." ||
+                filename === ".."
+            ) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid file name."
+                });
+            }
+
+            const submission = await Submission.findOne({
+                "presentation.fileName": filename,
+                status: {
+                    $in: ["submitted", "evaluated"]
+                }
+            });
+
+            if (!submission) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Presentation not found."
+                });
+            }
+
+            const presentation = submission.presentation;
+
+            const downloadName = path.basename(
+                presentation.originalName || filename
+            );
+
+            if (presentation.gridFsId) {
+
+                const bucket = getGridFSBucket();
+
+                const files = await bucket.find({
+                    _id: presentation.gridFsId
+                }).toArray();
+
+                if (!files.length) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Presentation file not found."
+                    });
+                }
+
+                res.attachment(downloadName);
+
+                res.setHeader(
+                    "Content-Type",
+                    "application/octet-stream"
+                );
+
+                res.setHeader(
+                    "X-Content-Type-Options",
+                    "nosniff"
+                );
+
+                res.setHeader(
+                    "Content-Length",
+                    files[0].length
+                );
+
+                const downloadStream =
+                    bucket.openDownloadStream(
+                        presentation.gridFsId
+                    );
+
+                downloadStream.on("error", (error) => {
+
+                    console.error(
+                        "Organizer Download Error:",
+                        error
+                    );
+
+                    if (!res.headersSent) {
+
+                        res.removeHeader("Content-Length");
+                        res.removeHeader("Content-Disposition");
+
+                        return res.status(500).json({
+                            success: false,
+                            message: "Unable to download presentation."
+                        });
+                    }
+
+                    res.destroy(error);
+                });
+
+                res.on("close", () => {
+                    if (!res.writableFinished) {
+                        downloadStream.destroy();
+                    }
+                });
+
+                downloadStream.pipe(res);
+
+            } else {
+
+                const localFile = path.join(
+                    uploadFolder,
+                    filename
+                );
+
+                if (!fs.existsSync(localFile)) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Presentation file not found."
+                    });
+                }
+
+                res.setHeader(
+                    "X-Content-Type-Options",
+                    "nosniff"
+                );
+
+                res.download(
+                    localFile,
+                    downloadName,
+                    (error) => {
+
+                        if (!error) return;
+
+                        if (!res.headersSent) {
+
+                            res.removeHeader("Content-Length");
+                            res.removeHeader("Content-Disposition");
+
+                            return res.status(500).json({
+                                success: false,
+                                message: "Unable to download presentation."
+                            });
+                        }
+
+                        res.destroy(error);
+                    }
+                );
+            }
+
+        } catch (error) {
+
+            console.error(
+                "Organizer Presentation Error:",
+                error
+            );
+
+            if (!res.headersSent) {
+
+                res.removeHeader("Content-Length");
+                res.removeHeader("Content-Disposition");
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Unable to access presentation."
+                });
+            }
+
+            res.destroy(error);
+        }
+    }
+);
 // MULTER ERROR HANDLER
 
 router.use((error, req, res, next) => {
