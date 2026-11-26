@@ -60,6 +60,22 @@ teamExtraTime: {
     of: Number,
     default: {}
 },
+
+resultsPublished: {
+    type: Boolean,
+    default: false
+},
+
+resultsPublishedAt: {
+    type: Date,
+    default: null
+},
+
+finalLeaderboard: {
+    type: [mongoose.Schema.Types.Mixed],
+    default: []
+},
+
     maximumTeams: {
         type: Number,
         default: 60,

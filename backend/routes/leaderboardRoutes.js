@@ -4,95 +4,104 @@ const router = express.Router();
 
 const Submission = require("../models/submission");
 const Evaluation = require("../models/Evaluation");
+const Event = require("../models/event");
+
+// GENERATE LEADERBOARD
+async function generateLeaderboard() {
+
+    const submissions = await Submission.find({
+        status: "evaluated"
+    })
+    .populate("team", "teamName teamId")
+    .populate("problem", "title code");
+
+    if (submissions.length === 0) {
+        return [];
+    }
+
+    const submissionIds = submissions.map(
+        item => item._id
+    );
+
+    const evaluations = await Evaluation.find({
+        submission: { $in: submissionIds }
+    }).select(
+        "submission totalScore totalMaximum evaluatedAt"
+    );
+
+    const evaluationMap = new Map();
+
+    evaluations.forEach(item => {
+        evaluationMap.set(
+            item.submission.toString(),
+            item
+        );
+    });
+
+    const leaderboard = submissions
+        .map(submission => {
+            const evaluation = evaluationMap.get(
+                submission._id.toString()
+            );
+
+            if (!evaluation || !submission.team) {
+                return null;
+            }
+
+            return {
+                submissionId: submission._id,
+                teamName: submission.team.teamName,
+                teamId: submission.team.teamId,
+                projectTitle: submission.projectTitle,
+                problemTitle: submission.problem
+                    ? submission.problem.title
+                    : "",
+                totalScore: evaluation.totalScore,
+                totalMaximum: evaluation.totalMaximum,
+                evaluatedAt: evaluation.evaluatedAt
+            };
+        })
+        .filter(item => item !== null);
+
+    leaderboard.sort((a, b) => {
+        return b.totalScore - a.totalScore;
+    });
+
+    let currentRank = 0;
+    let previousScore = null;
+
+    leaderboard.forEach((item, index) => {
+        if (item.totalScore !== previousScore) {
+            currentRank = index + 1;
+            previousScore = item.totalScore;
+        }
+
+        item.rank = currentRank;
+    });
+
+    return leaderboard;
+}
 
 // GET PUBLIC LEADERBOARD
 router.get("/", async (req, res) => {
     try {
-        // Get all evaluated submissions
-        const submissions = await Submission.find({
-            status: "evaluated"
-        })
-        .populate("team", "teamName teamId")
-        .populate("problem", "title code");
 
-        if (submissions.length === 0) {
-            return res.json({
-                success: true,
-                count: 0,
-                leaderboard: []
-            });
-        }
+        const event = await Event.findOne();
 
-        // Get submission IDs
-        const submissionIds = submissions.map(
-            item => item._id
-        );
+        const resultsPublished =
+            event?.resultsPublished === true;
 
-        // Get evaluations
-        const evaluations = await Evaluation.find({
-            submission: { $in: submissionIds }
-        }).select(
-            "submission totalScore totalMaximum evaluatedAt"
-        );
-
-        // Map evaluations by submission ID
-        const evaluationMap = new Map();
-
-        evaluations.forEach(item => {
-            evaluationMap.set(
-                item.submission.toString(),
-                item
-            );
-        });
-
-        // Prepare leaderboard
-        const leaderboard = submissions
-            .map(submission => {
-                const evaluation = evaluationMap.get(
-                    submission._id.toString()
-                );
-
-                if (!evaluation || !submission.team) {
-                    return null;
-                }
-
-                return {
-                    submissionId: submission._id,
-                    teamName: submission.team.teamName,
-                    teamId: submission.team.teamId,
-                    projectTitle: submission.projectTitle,
-                    problemTitle: submission.problem
-                        ? submission.problem.title
-                        : "",
-                    totalScore: evaluation.totalScore,
-                    totalMaximum: evaluation.totalMaximum,
-                    evaluatedAt: evaluation.evaluatedAt
-                };
-            })
-            .filter(item => item !== null);
-
-        // Sort highest score first
-        leaderboard.sort((a, b) => {
-            return b.totalScore - a.totalScore;
-        });
-
-        // Assign ranks (equal scores get equal ranks)
-        let currentRank = 0;
-        let previousScore = null;
-
-        leaderboard.forEach((item, index) => {
-            if (item.totalScore !== previousScore) {
-                currentRank = index + 1;
-                previousScore = item.totalScore;
-            }
-
-            item.rank = currentRank;
-        });
+        const leaderboard = resultsPublished
+            ? event.finalLeaderboard || []
+            : await generateLeaderboard();
 
         res.json({
             success: true,
             count: leaderboard.length,
-            leaderboard
+            leaderboard,
+            resultsPublished,
+            resultsPublishedAt:
+                event?.resultsPublishedAt || null
         });
 
     } catch (error) {
@@ -104,5 +113,7 @@ router.get("/", async (req, res) => {
         });
     }
 });
+
+router.generateLeaderboard = generateLeaderboard;
 
 module.exports = router;
