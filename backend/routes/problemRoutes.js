@@ -1425,4 +1425,102 @@ router.post(
     }
 );
 
+
+// SMART PROBLEM MATCHING
+
+router.post("/match", requireParticipant, async (req, res) => {
+    try {
+        const { skills, interests } = req.body || {};
+
+        if (
+            typeof skills !== "string" ||
+            typeof interests !== "string" ||
+            !skills.trim() ||
+            !interests.trim() ||
+            skills.length > 1000 ||
+            interests.length > 1000
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Enter valid team skills and interests."
+            });
+        }
+
+        const keywords = [...new Set(
+            (skills + "," + interests)
+                .toLowerCase()
+                .split(",")
+                .map(word => word.trim())
+                .filter(Boolean)
+        )];
+
+        const problems = await Problem.find({
+            isPublished: true
+        });
+
+        const recommendations = problems
+            .filter(problem =>
+                problem.selectedTeams.length < problem.capacity
+            )
+            .map(problem => {
+
+                const problemText = [
+                    problem.title,
+                    problem.statement,
+                    problem.category,
+                    problem.theme
+                ].join(" ").toLowerCase();
+
+                const matchedKeywords = keywords.filter(
+                    keyword => problemText.includes(keyword)
+                );
+
+                const matchPercentage = Math.round(
+                    matchedKeywords.length / keywords.length * 100
+                );
+
+                return {
+                    id: problem._id,
+                    code: problem.code,
+                    title: problem.title,
+                    statement: problem.statement,
+                    category: problem.category,
+                    theme: problem.theme,
+
+                    availableSlots:
+                        problem.capacity -
+                        problem.selectedTeams.length,
+
+                    matchPercentage,
+
+                    matchedKeywords,
+
+                    reason: matchedKeywords.length
+                        ? "Matches your team profile: " +
+                          matchedKeywords.join(", ")
+                        : "No direct keyword match found."
+                };
+            })
+            .filter(problem => problem.matchPercentage > 0)
+            .sort((a, b) =>
+                b.matchPercentage - a.matchPercentage
+            )
+            .slice(0, 5);
+
+        res.json({
+            success: true,
+            recommendations
+        });
+
+    } catch (error) {
+
+        console.error("Smart Matching Error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to generate recommendations."
+        });
+    }
+});
+
 module.exports = router;
