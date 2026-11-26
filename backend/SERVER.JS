@@ -58,7 +58,14 @@ app.get("/api/health", (req, res) => {
 app.use("/api/event/timer", 
     require("./routes/timerRoutes"));
 app.use("/api/event", eventRoutes);
+app.use("/api/announcements", 
+    require("./routes/announcementRoutes"));
 
+    app.use("/api/analytics", 
+        require("./routes/analyticsRoutes"));
+
+        app.use("/api/results",
+         require("./routes/resultsRoutes"));
 // AUTHENTICATION API
 
 app.use("/api/auth", authRoutes);
