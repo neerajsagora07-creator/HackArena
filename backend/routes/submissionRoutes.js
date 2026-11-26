@@ -8,6 +8,7 @@ const fs = require("fs");
 const router = express.Router();
 
 const Submission = require("../models/submission");
+const Team = require("../models/team");
 const Problem = require("../models/problem");
 const Event = require("../models/event");
 
@@ -961,11 +962,18 @@ router.get(
 
         try {
 
-            const submissions = await Submission.find({
-                status: {
-                    $in: ["submitted", "evaluated"]
-                }
-            })
+           const teams = await Team.find({
+    emailVerified: true
+}).select("_id");
+
+const submissions = await Submission.find({
+    team: {
+        $in: teams.map(team => team._id)
+    },
+    status: {
+        $in: ["submitted", "evaluated"]
+    }
+})
             .populate("team", "teamName teamId leaderName")
             .populate("problem", "code title")
             .sort({ submittedAt: -1 })
@@ -1016,12 +1024,19 @@ router.get(
                 });
             }
 
-            const submission = await Submission.findOne({
-                "presentation.fileName": filename,
-                status: {
-                    $in: ["submitted", "evaluated"]
-                }
-            });
+            const teams = await Team.find({
+    emailVerified: true
+}).select("_id");
+
+const submission = await Submission.findOne({
+    "presentation.fileName": filename,
+    team: {
+        $in: teams.map(team => team._id)
+    },
+    status: {
+        $in: ["submitted", "evaluated"]
+    }
+});
 
             if (!submission) {
                 return res.status(404).json({
