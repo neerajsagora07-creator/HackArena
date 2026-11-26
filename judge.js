@@ -71,7 +71,7 @@ const judgeData = {
     statistics: null
 };
 
-let selectedSubmission = null;
+let judgeResultsPublished = false;
 
 // ---------------------------------
 // JUDGING CRITERIA
@@ -107,7 +107,7 @@ async function loadEvaluationCriteria() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/judges/evaluation-criteria",
+            window.HACKARENA_API + "/api/judges/evaluation-criteria",
             {
                 method: "GET",
                 headers: {
@@ -325,7 +325,7 @@ async function loadAssignedProjects() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/judges/assigned-projects",
+            window.HACKARENA_API + "/api/judges/assigned-projects",
             {
                 method: "GET",
                 headers: {
@@ -463,7 +463,7 @@ async function loadExistingEvaluation(submissionId) {
     try {
 
         const response = await fetch(
-            `http://127.0.0.1:5000/api/judges/evaluation/${submissionId}`,
+            `${window.HACKARENA_API}/api/judges/evaluation/${submissionId}`,
             {
                 method: "GET",
                 headers: {
@@ -568,7 +568,7 @@ if (submitButton) {
     submitButton.textContent = "Save Evaluation";
 }
 
-    evaluationFields.disabled = false;
+    evaluationFields.disabled = judgeResultsPublished;
 
     evaluationStatus.textContent = "Checking evaluation status...";
 
@@ -614,7 +614,7 @@ if (submitButton) {
 
         updateTotal();
 
-        evaluationFields.disabled = false;
+        evaluationFields.disabled = judgeResultsPublished;
 
         evaluationStatus.textContent =
           `Already evaluated. You can edit the marks and update the evaluation. Score: ${evaluation.totalScore} / ${evaluation.totalMaximum}`;
@@ -625,7 +625,7 @@ if (submitButton) {
 
         submission.evaluationStatus = "assigned";
 
-        evaluationFields.disabled = false;
+        evaluationFields.disabled = judgeResultsPublished;
 
         evaluationStatus.textContent =
             "This project is ready for evaluation.";
@@ -658,7 +658,11 @@ document.getElementById("evaluate-selected")
 evaluationForm.addEventListener("submit", async (event) => {
 
     event.preventDefault();
-
+if (judgeResultsPublished) {
+    evaluationStatus.textContent =
+        "Official results published. Evaluation is permanently locked.";
+    return;
+}
     if (!selectedSubmission) {
 
         evaluationStatus.textContent =
@@ -707,7 +711,7 @@ evaluationForm.addEventListener("submit", async (event) => {
     try {
 
         const response = await fetch(
-            `http://127.0.0.1:5000/api/judges/evaluation/${selectedSubmission.submissionId}`,
+            `${window.HACKARENA_API}/api/judges/evaluation/${selectedSubmission.submissionId}`,
             {
                 method: "POST",
                 headers: {
@@ -731,7 +735,7 @@ evaluationForm.addEventListener("submit", async (event) => {
 
         selectedSubmission.evaluationStatus = "evaluated";
 
-       evaluationFields.disabled = false;
+       evaluationFields.disabled = judgeResultsPublished;
 
         document.getElementById("evaluate-selected").disabled = false;
 
@@ -757,7 +761,7 @@ evaluationForm.addEventListener("submit", async (event) => {
         } finally {
 
         if (submitButton) {
-            submitButton.disabled = false;
+            submitButton.disabled = judgeResultsPublished;
         }
 
     }
@@ -810,7 +814,7 @@ async function loadLeaderboard() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/leaderboard",
+            window.HACKARENA_API + "/api/leaderboard",
             {
                 method: "GET",
                 headers: {
@@ -919,7 +923,7 @@ async function verifyJudgeLogin() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/auth/judge/me",
+            window.HACKARENA_API + "/api/auth/judge/me",
             {
                 method: "GET",
                 headers: {
@@ -1010,7 +1014,7 @@ verifyJudgeLogin();
     async function loadJudgeTimer() {
         try {
             const response = await fetch(
-                "http://127.0.0.1:5000/api/event/timer",
+                window.HACKARENA_API + "/api/event/timer",
                 { cache: "no-store" }
             );
 
@@ -1126,7 +1130,7 @@ async function loadJudgeAnnouncements() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/announcements/judge",
+            window.HACKARENA_API + "/api/announcements/judge",
             {
                 headers: {
                     "Authorization": "Bearer " + token
@@ -1317,7 +1321,7 @@ async function loadJudgeResultsStatus() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/results",
+            window.HACKARENA_API + "/api/results",
             { cache: "no-store" }
         );
 
@@ -1327,7 +1331,16 @@ async function loadJudgeResultsStatus() {
             throw new Error(data.message);
         }
 
-        if (data.resultsPublished) {
+
+          judgeResultsPublished =
+    judgeResultsPublished || data.resultsPublished === true;
+
+if (judgeResultsPublished) {
+
+    evaluationFields.disabled = true;
+
+    evaluationStatus.textContent =
+        "Official results published. Evaluation is permanently locked.";
 
             status.textContent = "Official Results Published";
             status.style.color = "#16a34a";
