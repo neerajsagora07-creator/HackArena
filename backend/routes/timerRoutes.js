@@ -251,6 +251,17 @@ router.post("/extra-time", requireOrganizer, async (req, res) => {
         }
 
         const event = await Event.findOne();
+        if (event?.resultsPublished) {
+
+    return res.status(403).json({
+
+        success: false,
+
+        message: "Official results have been published. Submission deadline extensions are locked."
+
+    });
+
+}
 
         if (!event || !event.submissionDeadline) {
             return res.status(400).json({

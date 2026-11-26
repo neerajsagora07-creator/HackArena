@@ -86,6 +86,20 @@ async function checkDeadline(res, teamId) {
 
     const event = await Event.findOne();
 
+    if (event?.resultsPublished) {
+
+    res.status(403).json({
+
+        success: false,
+
+        message: "Official results have been published. Submissions are permanently closed."
+
+    });
+
+    return false;
+
+}
+
     if (!event || !event.submissionDeadline) {
 
         res.status(400).json({
