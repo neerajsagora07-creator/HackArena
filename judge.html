@@ -92,11 +92,7 @@
         <span class="role-badge">JUDGE</span>
       </header>
 
-      <p class="preview-banner">
-        Frontend preview — no judge is authenticated.
-        Live submissions, evaluations and scores are
-        not connected yet.
-      </p>
+      
 
       <!-- OVERVIEW -->
       <section id="overview" class="page">
@@ -241,13 +237,12 @@
           </div>
 
           <div class="empty-state" id="projects-empty">
-            <h3>No Submission Data Loaded</h3>
+            <h3>No Assigned Projects</h3>
 
-            <p>
-              No sample teams or projects have been
-              added. Real participant submissions
-              will come from the backend.
-            </p>
+<p>
+    Projects assigned by the organizer
+    will appear here.
+</p>
           </div>
 
         </article>
@@ -296,6 +291,22 @@
             </p>
           </div>
 
+          <div class="problem-statement">
+    <h4>Project Description</h4>
+
+    <p id="detail-description">
+        Select a project to view its description.
+    </p>
+</div>
+
+<div class="problem-statement">
+    <h4>Technologies Used</h4>
+
+    <p id="detail-technologies">
+        Select a project to view its technologies.
+    </p>
+</div>
+
           <div class="resource-grid">
 
             <div class="resource">
@@ -313,7 +324,7 @@
             </div>
 
             <div class="resource">
-              <strong>Presentation / PPT</strong>
+             <strong>Project Presentation</strong>
               <div id="ppt-resource">
                 <span>Not loaded</span>
               </div>
@@ -348,14 +359,12 @@
           <div class="selection-notice"
                id="selection-notice">
             No project selected. Open Submitted Projects
-            and select an available submission after
-            backend integration.
+and select a project to evaluate.
           </div>
 
           <p class="help">
-            The current default rubric is shown below.
-            Real event evaluation data will come
-            from the backend.
+           Evaluate the selected project using the
+official evaluation criteria set by the organizer.
           </p>
 
           <form id="evaluation-form">
