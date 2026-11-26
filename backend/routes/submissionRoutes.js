@@ -12,28 +12,18 @@ const Problem = require("../models/problem");
 const Event = require("../models/event");
 
 const requireParticipant = require("../middleware/requireParticipant");
+const getGridFSBucket = require("../utils/gridfs");
 
 const uploadFolder = path.join(__dirname, "../uploads/presentations");
 
 fs.mkdirSync(uploadFolder, { recursive: true });
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadFolder);
-    },
-    filename: (req, file, cb) => {
-        const uniqueName = Date.now() + "-" +
-            Math.round(Math.random() * 1000000) +
-            path.extname(file.originalname).toLowerCase();
-
-        cb(null, uniqueName);
-    }
-});
+const storage = multer.memoryStorage();
 
 const upload = multer({
     storage: storage,
     limits: {
-        fileSize: 10 * 1024 * 1024
+        fileSize: 5 * 1024 * 1024
     },
     fileFilter: (req, file, cb) => {
         const allowedExtensions = [".pdf", ".ppt", ".pptx"];
@@ -47,15 +37,47 @@ const upload = multer({
     }
 });
 
+
+// SUBMISSION LOCK
+
+const activeSubmissions = new Set();
+
+function preventConcurrentSubmission(req, res, next) {
+    const teamId = String(req.team._id);
+
+    if (activeSubmissions.has(teamId)) {
+        return res.status(409).json({
+            success: false,
+            message: "A submission is already being processed. Please wait."
+        });
+    }
+
+    activeSubmissions.add(teamId);
+
+    req.releaseSubmissionLock = () => {
+        activeSubmissions.delete(teamId);
+    };
+
+    next();
+}
+
+
+// VALIDATE URL
+
 function validUrl(url) {
     try {
         const parsedUrl = new URL(url);
+
         return parsedUrl.protocol === "http:" ||
             parsedUrl.protocol === "https:";
+
     } catch (error) {
         return false;
     }
 }
+
+
+// GET TECHNOLOGIES
 
 function getTechnologies(value) {
     if (Array.isArray(value)) {
@@ -69,18 +91,142 @@ function getTechnologies(value) {
     return [];
 }
 
-function getPresentation(file) {
+
+// UPLOAD PRESENTATION TO GRIDFS
+
+async function getPresentation(file) {
     if (!file) return null;
 
-    return {
-        originalName: file.originalname,
-        fileName: file.filename,
-        filePath: "/uploads/presentations/" + file.filename,
-        mimeType: file.mimetype,
-        fileSize: file.size,
-        uploadedAt: new Date()
-    };
+    const bucket = getGridFSBucket();
+
+    const uniqueName =
+        new mongoose.Types.ObjectId().toString() +
+        path.extname(file.originalname).toLowerCase();
+
+    return new Promise((resolve, reject) => {
+
+        const uploadStream = bucket.openUploadStream(uniqueName, {
+            metadata: {
+                originalName: file.originalname,
+                mimeType: file.mimetype
+            }
+        });
+
+        uploadStream.once("error", async (error) => {
+            try {
+                await bucket.delete(uploadStream.id);
+
+            } catch (cleanupError) {
+                console.error(
+                    "Partial Upload Cleanup Error:",
+                    cleanupError
+                );
+            }
+
+            reject(error);
+        });
+
+        uploadStream.once("finish", () => {
+            resolve({
+                gridFsId: uploadStream.id,
+                originalName: file.originalname,
+                fileName: uniqueName,
+                filePath: "/uploads/presentations/" + uniqueName,
+                mimeType: file.mimetype,
+                fileSize: file.size,
+                uploadedAt: new Date()
+            });
+        });
+
+        uploadStream.end(file.buffer);
+    });
 }
+
+
+// DELETE PRESENTATION
+
+async function deletePresentation(presentation) {
+    if (!presentation) return;
+
+    try {
+        if (presentation.gridFsId) {
+            const bucket = getGridFSBucket();
+
+            await bucket.delete(presentation.gridFsId);
+
+        } else if (presentation.fileName) {
+
+            const filename = presentation.fileName;
+
+            if (path.basename(filename) !== filename) {
+                return;
+            }
+
+            const filePath = path.join(uploadFolder, filename);
+
+            try {
+                await fs.promises.unlink(filePath);
+
+            } catch (error) {
+                if (error.code !== "ENOENT") {
+                    throw error;
+                }
+            }
+        }
+
+    } catch (error) {
+        console.error("Presentation Delete Error:", error);
+    }
+}
+
+
+// CLEANUP UNUSED PRESENTATION
+
+async function cleanupFailedPresentation(presentation) {
+    if (!presentation?.gridFsId) return;
+
+    try {
+        const referenced = await Submission.exists({
+            "presentation.gridFsId": presentation.gridFsId
+        });
+
+        if (!referenced) {
+            await deletePresentation(presentation);
+        }
+
+    } catch (error) {
+        console.error("Presentation Cleanup Error:", error);
+    }
+}
+
+
+// CLEANUP REPLACED PRESENTATION
+
+async function cleanupOldPresentation(presentation) {
+    if (!presentation) return;
+
+    try {
+        if (presentation.gridFsId) {
+            await cleanupFailedPresentation(presentation);
+
+        } else if (presentation.fileName) {
+
+            const referenced = await Submission.exists({
+                "presentation.fileName": presentation.fileName
+            });
+
+            if (!referenced) {
+                await deletePresentation(presentation);
+            }
+        }
+
+    } catch (error) {
+        console.error("Old Presentation Cleanup Error:", error);
+    }
+}
+
+
+// CHECK SUBMISSION DEADLINE
 
 async function checkDeadline(res, teamId) {
 
@@ -88,17 +234,13 @@ async function checkDeadline(res, teamId) {
 
     if (event?.resultsPublished) {
 
-    res.status(403).json({
+        res.status(403).json({
+            success: false,
+            message: "Official results have been published. Submissions are permanently closed."
+        });
 
-        success: false,
-
-        message: "Official results have been published. Submissions are permanently closed."
-
-    });
-
-    return false;
-
-}
+        return false;
+    }
 
     if (!event || !event.submissionDeadline) {
 
@@ -131,6 +273,9 @@ async function checkDeadline(res, teamId) {
     return true;
 }
 
+
+// GET SELECTED PROBLEM
+
 async function getSelectedProblem(team) {
     if (!team.selectedProblem) return null;
 
@@ -141,7 +286,11 @@ async function getSelectedProblem(team) {
     });
 }
 
+
+// VALIDATE FINAL SUBMISSION
+
 function validateFinalDetails(body, file, existingPresentation) {
+
     const {
         projectTitle,
         description,
@@ -149,7 +298,14 @@ function validateFinalDetails(body, file, existingPresentation) {
         liveDemoUrl
     } = body;
 
-    if (!projectTitle || !description || !githubUrl) {
+    if (
+        typeof projectTitle !== "string" ||
+        typeof description !== "string" ||
+        typeof githubUrl !== "string" ||
+        !projectTitle.trim() ||
+        !description.trim() ||
+        !githubUrl.trim()
+    ) {
         return "Project title, description and GitHub URL are required.";
     }
 
@@ -157,7 +313,13 @@ function validateFinalDetails(body, file, existingPresentation) {
         return "Please enter a valid GitHub URL.";
     }
 
-    if (liveDemoUrl && !validUrl(liveDemoUrl)) {
+    if (
+        liveDemoUrl &&
+        (
+            typeof liveDemoUrl !== "string" ||
+            !validUrl(liveDemoUrl)
+        )
+    ) {
         return "Please enter a valid Live Demo URL.";
     }
 
@@ -168,20 +330,27 @@ function validateFinalDetails(body, file, existingPresentation) {
     return null;
 }
 
+
 // SAVE DRAFT
 
 router.post(
     "/draft",
     requireParticipant,
     upload.single("presentation"),
+    preventConcurrentSubmission,
+
     async (req, res) => {
-       try {
-    const team = req.team;
 
-    const allowed = await checkDeadline(res, team._id);
-    if (!allowed) return;
+        let presentation = null;
 
-    const problem = await getSelectedProblem(team);
+        try {
+            const team = req.team;
+
+            const allowed = await checkDeadline(res, team._id);
+
+            if (!allowed) return;
+
+            const problem = await getSelectedProblem(team);
 
             if (!problem) {
                 return res.status(400).json({
@@ -202,7 +371,11 @@ router.post(
                 });
             }
 
-            const presentation = getPresentation(req.file);
+            const oldPresentation = existing
+                ? existing.presentation
+                : null;
+
+            presentation = await getPresentation(req.file);
 
             const data = {
                 projectTitle: req.body.projectTitle || "",
@@ -220,7 +393,8 @@ router.post(
             const submission = await Submission.findOneAndUpdate(
                 {
                     team: team._id,
-                    problem: problem._id
+                    problem: problem._id,
+                    status: { $ne: "evaluated" }
                 },
                 {
                     $set: data,
@@ -231,11 +405,26 @@ router.post(
                 },
                 {
                     new: true,
-                    upsert: true,
+                    upsert: !existing,
                     runValidators: true,
                     setDefaultsOnInsert: true
                 }
             );
+
+            if (!submission) {
+                await cleanupFailedPresentation(presentation);
+
+                return res.status(409).json({
+                    success: false,
+                    message: "Submission has changed. Please refresh and try again."
+                });
+            }
+
+            if (presentation && oldPresentation) {
+                await cleanupOldPresentation(oldPresentation);
+            }
+
+            presentation = null;
 
             res.json({
                 success: true,
@@ -244,14 +433,22 @@ router.post(
             });
 
         } catch (error) {
+
+            await cleanupFailedPresentation(presentation);
+
             console.error("Save Draft Error:", error);
+
             res.status(500).json({
                 success: false,
                 message: "Unable to save draft."
             });
+
+        } finally {
+            req.releaseSubmissionLock();
         }
     }
 );
+
 
 // FINAL SUBMISSION
 
@@ -259,11 +456,17 @@ router.post(
     "/",
     requireParticipant,
     upload.single("presentation"),
+    preventConcurrentSubmission,
+
     async (req, res) => {
+
+        let presentation = null;
+
         try {
             const team = req.team;
 
-           const allowed = await checkDeadline(res, team._id);
+            const allowed = await checkDeadline(res, team._id);
+
             if (!allowed) return;
 
             const problem = await getSelectedProblem(team);
@@ -310,7 +513,11 @@ router.post(
                 submittedAt: new Date()
             };
 
-            const presentation = getPresentation(req.file);
+            const oldPresentation = existing
+                ? existing.presentation
+                : null;
+
+            presentation = await getPresentation(req.file);
 
             if (presentation) {
                 data.presentation = presentation;
@@ -319,7 +526,8 @@ router.post(
             const submission = await Submission.findOneAndUpdate(
                 {
                     team: team._id,
-                    problem: problem._id
+                    problem: problem._id,
+                    status: { $ne: "evaluated" }
                 },
                 {
                     $set: data,
@@ -330,11 +538,26 @@ router.post(
                 },
                 {
                     new: true,
-                    upsert: true,
+                    upsert: !existing,
                     runValidators: true,
                     setDefaultsOnInsert: true
                 }
             );
+
+            if (!submission) {
+                await cleanupFailedPresentation(presentation);
+
+                return res.status(409).json({
+                    success: false,
+                    message: "Submission has changed. Please refresh and try again."
+                });
+            }
+
+            if (presentation && oldPresentation) {
+                await cleanupOldPresentation(oldPresentation);
+            }
+
+            presentation = null;
 
             res.json({
                 success: true,
@@ -343,65 +566,80 @@ router.post(
             });
 
         } catch (error) {
+
+            await cleanupFailedPresentation(presentation);
+
             console.error("Final Submission Error:", error);
+
             res.status(500).json({
                 success: false,
                 message: "Unable to submit project."
             });
+
+        } finally {
+            req.releaseSubmissionLock();
         }
     }
 );
 
 
-
 // GET TEAM SUBMISSION
 
-router.get("/my-submission", requireParticipant, async (req, res) => {
-    try {
-        const submissions = await Submission.find({
-            team: req.team._id
-        }).populate("problem", "code title");
+router.get(
+    "/my-submission",
+    requireParticipant,
 
-        const event = await Event.findOne();
+    async (req, res) => {
 
-        const submissionDeadline =
-            event?.submissionDeadline || null;
+        try {
+            const submissions = await Submission.find({
+                team: req.team._id
+            }).populate("problem", "code title");
 
-        const extraSeconds = Number(
-            event?.teamExtraTime?.get(String(req.team._id)) || 0
-        );
+            const event = await Event.findOne();
 
-        const effectiveDeadline = submissionDeadline
-            ? new Date(
-                new Date(submissionDeadline).getTime() +
-                extraSeconds * 1000
-            )
-            : null;
+            const submissionDeadline =
+                event?.submissionDeadline || null;
 
-       const submissionOpen =
-    !event?.resultsPublished &&
-    effectiveDeadline !== null &&
-    Date.now() < effectiveDeadline.getTime();
+            const extraSeconds = Number(
+                event?.teamExtraTime?.get(String(req.team._id)) || 0
+            );
 
-        res.json({
-            success: true,
-            count: submissions.length,
-            submissions: submissions,
-            submissionDeadline: submissionDeadline,
-            extraSeconds: extraSeconds,
-            effectiveDeadline: effectiveDeadline,
-            submissionOpen: submissionOpen,
-            serverTime: Date.now()
-        });
+            const effectiveDeadline = submissionDeadline
+                ? new Date(
+                    new Date(submissionDeadline).getTime() +
+                    extraSeconds * 1000
+                )
+                : null;
 
-    } catch (error) {
-        console.error("Get Submission Error:", error);
-        res.status(500).json({
-            success: false,
-            message: "Unable to fetch submissions."
-        });
+            const submissionOpen =
+                !event?.resultsPublished &&
+                effectiveDeadline !== null &&
+                Date.now() < effectiveDeadline.getTime();
+
+            res.json({
+                success: true,
+                count: submissions.length,
+                submissions: submissions,
+                submissionDeadline: submissionDeadline,
+                extraSeconds: extraSeconds,
+                effectiveDeadline: effectiveDeadline,
+                submissionOpen: submissionOpen,
+                serverTime: Date.now()
+            });
+
+        } catch (error) {
+
+            console.error("Get Submission Error:", error);
+
+            res.status(500).json({
+                success: false,
+                message: "Unable to fetch submissions."
+            });
+        }
     }
-});
+);
+
 
 // UPDATE EXISTING SUBMISSION
 
@@ -409,8 +647,14 @@ router.put(
     "/:id",
     requireParticipant,
     upload.single("presentation"),
+    preventConcurrentSubmission,
+
     async (req, res) => {
+
+        let presentation = null;
+
         try {
+
             if (!mongoose.isValidObjectId(req.params.id)) {
                 return res.status(400).json({
                     success: false,
@@ -418,7 +662,8 @@ router.put(
                 });
             }
 
-          const allowed = await checkDeadline(res, req.team._id);
+            const allowed = await checkDeadline(res, req.team._id);
+
             if (!allowed) return;
 
             const submission = await Submission.findOne({
@@ -462,86 +707,266 @@ router.put(
                 });
             }
 
-            submission.projectTitle = req.body.projectTitle.trim();
-            submission.description = req.body.description.trim();
-            submission.githubUrl = req.body.githubUrl.trim();
-            submission.liveDemoUrl = (req.body.liveDemoUrl || "").trim();
-            submission.technologies = getTechnologies(req.body.technologies);
-            submission.status = "submitted";
-            submission.submittedAt = new Date();
+            const oldPresentation = {
+                gridFsId: submission.presentation?.gridFsId,
+                fileName: submission.presentation?.fileName
+            };
 
-            const presentation = getPresentation(req.file);
+            const data = {
+                projectTitle: req.body.projectTitle.trim(),
+                description: req.body.description.trim(),
+                githubUrl: req.body.githubUrl.trim(),
+                liveDemoUrl: (req.body.liveDemoUrl || "").trim(),
+                technologies: getTechnologies(req.body.technologies),
+                status: "submitted",
+                submittedAt: new Date()
+            };
+
+            presentation = await getPresentation(req.file);
 
             if (presentation) {
-                submission.presentation = presentation;
+                data.presentation = presentation;
             }
 
-            await submission.save();
+            const updatedSubmission =
+                await Submission.findOneAndUpdate(
+                    {
+                        _id: submission._id,
+                        team: req.team._id,
+                        status: { $ne: "evaluated" }
+                    },
+                    {
+                        $set: data
+                    },
+                    {
+                        new: true,
+                        runValidators: true
+                    }
+                );
+
+            if (!updatedSubmission) {
+
+                await cleanupFailedPresentation(presentation);
+
+                return res.status(409).json({
+                    success: false,
+                    message: "Submission has changed. Please refresh and try again."
+                });
+            }
+
+            if (presentation) {
+                await cleanupOldPresentation(oldPresentation);
+            }
+
+            presentation = null;
 
             res.json({
                 success: true,
                 message: "Project updated successfully.",
-                submission: submission
+                submission: updatedSubmission
             });
 
         } catch (error) {
+
+            await cleanupFailedPresentation(presentation);
+
             console.error("Update Submission Error:", error);
+
             res.status(500).json({
                 success: false,
                 message: "Unable to update submission."
             });
+
+        } finally {
+            req.releaseSubmissionLock();
         }
     }
 );
 
-router.get("/presentation/:filename", requireParticipant, async (req, res) => {
-    try {
-        const filename = req.params.filename;
 
-        if (path.basename(filename) !== filename) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid file name."
+// SECURE PRESENTATION DOWNLOAD
+
+router.get(
+    "/presentation/:filename",
+    requireParticipant,
+
+    async (req, res) => {
+
+        try {
+
+            const filename = req.params.filename;
+
+            if (path.basename(filename) !== filename) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid file name."
+                });
+            }
+
+            const submission = await Submission.findOne({
+                team: req.team._id,
+                "presentation.fileName": filename
             });
+
+            if (!submission) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Presentation not found."
+                });
+            }
+
+            const presentation = submission.presentation;
+
+            const downloadName = path.basename(
+                presentation.originalName || filename
+            );
+
+            if (presentation.gridFsId) {
+
+                const bucket = getGridFSBucket();
+
+                const files = await bucket.find({
+                    _id: presentation.gridFsId
+                }).toArray();
+
+                if (!files.length) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Presentation file not found."
+                    });
+                }
+
+                const storedFile = files[0];
+
+                res.attachment(downloadName);
+
+                res.setHeader(
+                    "Content-Type",
+                    "application/octet-stream"
+                );
+
+                res.setHeader(
+                    "X-Content-Type-Options",
+                    "nosniff"
+                );
+
+                res.setHeader(
+                    "Content-Length",
+                    storedFile.length
+                );
+
+                const downloadStream =
+                    bucket.openDownloadStream(presentation.gridFsId);
+
+                downloadStream.on("error", (error) => {
+
+                    console.error(
+                        "GridFS Download Error:",
+                        error
+                    );
+
+                    if (!res.headersSent) {
+
+                        res.removeHeader("Content-Length");
+                        res.removeHeader("Content-Disposition");
+
+                        return res.status(500).json({
+                            success: false,
+                            message: "Unable to download presentation."
+                        });
+                    }
+
+                    res.destroy(error);
+                });
+
+                res.on("close", () => {
+                    if (!res.writableFinished) {
+                        downloadStream.destroy();
+                    }
+                });
+
+                downloadStream.pipe(res);
+
+            } else {
+
+                const localFile = path.join(
+                    uploadFolder,
+                    filename
+                );
+
+                if (!fs.existsSync(localFile)) {
+                    return res.status(404).json({
+                        success: false,
+                        message: "Presentation file not found."
+                    });
+                }
+
+                res.download(
+                    localFile,
+                    downloadName,
+                    (error) => {
+
+                        if (!error) return;
+
+                        console.error(
+                            "Local Presentation Download Error:",
+                            error
+                        );
+
+                        if (!res.headersSent) {
+
+                            res.removeHeader("Content-Length");
+                            res.removeHeader("Content-Disposition");
+
+                            return res.status(500).json({
+                                success: false,
+                                message: "Unable to download presentation."
+                            });
+                        }
+
+                        res.destroy(error);
+                    }
+                );
+            }
+
+        } catch (error) {
+
+            console.error("Presentation Access Error:", error);
+
+            if (!res.headersSent) {
+
+                res.removeHeader("Content-Length");
+                res.removeHeader("Content-Disposition");
+
+                res.status(500).json({
+                    success: false,
+                    message: "Unable to access presentation."
+                });
+
+            } else {
+                res.destroy(error);
+            }
         }
-
-        const submission = await Submission.findOne({
-            team: req.team._id,
-            "presentation.fileName": filename
-        });
-
-        if (!submission) {
-            return res.status(404).json({
-                success: false,
-                message: "Presentation not found."
-            });
-        }
-
-        res.sendFile(path.join(uploadFolder, filename));
-
-    } catch (error) {
-        console.error("Presentation Access Error:", error);
-
-        res.status(500).json({
-            success: false,
-            message: "Unable to access presentation."
-        });
     }
-});
+);
+
 
 // MULTER ERROR HANDLER
 
 router.use((error, req, res, next) => {
+
     if (error instanceof multer.MulterError) {
+
         return res.status(400).json({
             success: false,
             message: error.code === "LIMIT_FILE_SIZE"
-                ? "Presentation file must be 10 MB or smaller."
+                ? "Presentation file must be 5 MB or smaller."
                 : error.message
         });
     }
 
     if (error) {
+
         return res.status(400).json({
             success: false,
             message: error.message
@@ -551,5 +976,5 @@ router.use((error, req, res, next) => {
     next();
 });
 
-module.exports = router;
 
+module.exports = router;
