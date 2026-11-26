@@ -2018,7 +2018,7 @@ function renderSubmissions() {
 
             downloadButton.type = "button";
 
-            downloadButton.className = "secondary-button";
+            downloadButton.className = "button secondary";
 
             downloadButton.textContent = "Download Presentation";
 
