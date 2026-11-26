@@ -10,6 +10,9 @@ require("dotenv").config({
 
 const app = express();
 
+if (process.env.RENDER === "true") {
+    app.set("trust proxy", 1);
+}
 // SMTP CONFIGURATION CHECK
 
 console.log("SMTP CHECK:", {
