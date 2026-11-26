@@ -59,12 +59,17 @@
           Submission
         </button>
 
-        <button type="button"
-                data-page="updates"
-                aria-pressed="false">
-          Announcements & Notifications
-        </button>
+       <button type="button"
+        data-page="updates"
+        aria-pressed="false">
 
+  Announcements &amp; Notifications
+
+  <span id="participant-unread-badge"
+        class="unread-badge"
+        hidden>0</span>
+
+</button>
         <button type="button"
                 data-page="leaderboard"
                 aria-pressed="false">
@@ -682,6 +687,23 @@
               </span>
 
             </article>
+            <article class="achievement-card">
+
+    <span class="achievement-icon"
+          aria-hidden="true">🏆</span>
+
+    <h3>Evaluation Master</h3>
+
+    <p>
+        Complete project evaluation
+    </p>
+
+    <span class="badge-status"
+          id="badge-evaluation">
+        Not verified
+    </span>
+
+</article>
 
           </div>
 

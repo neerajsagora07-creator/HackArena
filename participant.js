@@ -616,29 +616,137 @@ const matchingForm =
 const matchingStatus =
   document.getElementById("matching-status");
 
-matchingForm.addEventListener("submit", (event) => {
+matchingForm.addEventListener("submit", async (event) => {
 
-  event.preventDefault();
+    event.preventDefault();
 
-  const skills =
-    document.getElementById("skills").value.trim();
+    const skills = document.getElementById("skills").value.trim();
+    const interests = document.getElementById("interests").value.trim();
 
-  const interests =
-    document.getElementById("interests").value.trim();
+    if (!skills || !interests) {
+        matchingStatus.textContent =
+            "Please enter your team's skills and interests.";
+        return;
+    }
 
-  if (!skills || !interests) {
+    const button = matchingForm.querySelector('button[type="submit"]');
 
-    matchingStatus.textContent =
-      "Please enter your team's skills and interests.";
+    button.disabled = true;
+    button.textContent = "Finding matches...";
 
-    return;
-  }
+    matchingStatus.textContent = "Analyzing your team profile...";
 
-  matchingStatus.textContent =
-    "Problem matching is not connected yet. " +
-    "The backend will compare your skills and interests " +
-    "with available problem requirements. " +
-    "No recommendation has been generated or saved.";
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/problems/match",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": "Bearer " +
+                        sessionStorage.getItem("hackarenaTeamToken")
+                },
+                body: JSON.stringify({
+                    skills,
+                    interests
+                })
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || "Matching failed.");
+        }
+
+        matchingStatus.replaceChildren();
+
+        if (!data.recommendations.length) {
+            matchingStatus.textContent =
+                "No suitable matches found. Try different skills or interests.";
+            return;
+        }
+
+        const heading = document.createElement("h3");
+        heading.textContent = "Recommended Problems";
+        matchingStatus.append(heading);
+
+        data.recommendations.forEach(problem => {
+
+            const card = document.createElement("article");
+            card.className = "problem-card";
+            card.style.marginTop = "15px";
+
+            const title = document.createElement("h3");
+            title.textContent = problem.code + " - " + problem.title;
+
+            const score = document.createElement("strong");
+            score.textContent = problem.matchPercentage + "% Keyword Match";
+            score.style.color = "green";
+
+            const progress = document.createElement("progress");
+            progress.max = 100;
+            progress.value = problem.matchPercentage;
+            progress.style.width = "100%";
+
+            const description = document.createElement("p");
+            description.textContent = problem.statement;
+
+            const slots = document.createElement("p");
+            slots.textContent =
+                "Available Slots: " + problem.availableSlots;
+
+            const why = document.createElement("h4");
+            why.textContent = "Why This Match?";
+
+            const reason = document.createElement("p");
+            reason.textContent = problem.reason;
+
+            const selectButton = document.createElement("button");
+            selectButton.type = "button";
+            selectButton.className = "button";
+
+            selectButton.textContent = participantState.selectedProblem
+                ? "Already Selected"
+                : "Select Problem";
+
+            selectButton.disabled =
+                Boolean(participantState.selectedProblem);
+
+            selectButton.addEventListener("click", async () => {
+                await selectProblem(problem, selectButton);
+
+                if (participantState.selectedProblem) {
+                    showPage("problems");
+                    matchingStatus.textContent =
+                        "A problem has been selected.";
+                }
+            });
+
+            card.append(
+                title,
+                score,
+                progress,
+                description,
+                slots,
+                why,
+                reason,
+                selectButton
+            );
+
+            matchingStatus.append(card);
+        });
+
+    } catch (error) {
+
+        matchingStatus.textContent = error.message;
+
+    } finally {
+
+        button.disabled = false;
+        button.textContent = "Find matches";
+    }
 });
 
 
@@ -1131,36 +1239,42 @@ function updateProgressTracker() {
 
 function updateAchievements() {
 
-  const badges = {
-    registration: "badge-registration",
-    problem: "badge-problem",
-    submission: "badge-submission"
-  };
+    const badges = {
+        registration: "badge-registration",
+        problem: "badge-problem",
+        submission: "badge-submission",
+        evaluation: "badge-evaluation"
+    };
 
-  Object.entries(badges).forEach(([name, elementId]) => {
+    Object.entries(badges).forEach(([name, elementId]) => {
 
-    const element =
-      document.getElementById(elementId);
+        const element =
+            document.getElementById(elementId);
 
-    const unlocked =
-      participantState.achievements[name];
+        if (!element) return;
 
-    element.classList.remove("unlocked");
+        const unlocked =
+            participantState.achievements[name];
 
-    if (unlocked === true) {
+        element.classList.remove("unlocked");
 
-      element.textContent = "Unlocked";
-      element.classList.add("unlocked");
+        if (unlocked === true) {
 
-    } else if (unlocked === false) {
+            element.textContent = "Unlocked";
+            element.classList.add("unlocked");
 
-      element.textContent = "Locked";
+        } else if (unlocked === false) {
 
-    } else {
+            element.textContent = "Locked";
 
-      element.textContent = "Not verified";
-    }
-  });
+        } else {
+
+            element.textContent = "Not verified";
+
+        }
+
+    });
+
 }
 
 // ---------------------------------
@@ -1516,6 +1630,479 @@ document.getElementById("final-submit").disabled =
 loadSubmissionDeadline();
 
 setInterval(loadSubmissionDeadline, 3000);
+
+// ---------------------------------
+// LIVE ANNOUNCEMENTS & NOTIFICATIONS
+// ---------------------------------
+
+async function loadParticipantAnnouncements() {
+
+    const token =
+        sessionStorage.getItem("hackarenaTeamToken");
+
+    if (!token) return;
+
+    const list =
+        document.getElementById("announcements-list");
+
+    const empty =
+        document.getElementById("announcements-empty");
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/announcements/participant",
+            {
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message);
+        }
+
+        updateParticipantUnreadBadge(data.announcements);
+        list.replaceChildren();
+
+        empty.hidden = data.announcements.length > 0;
+
+        if (!data.announcements.length) {
+
+            empty.textContent =
+                "No announcements published yet.";
+
+        }
+
+        data.announcements.forEach(announcement => {
+
+            const card = document.createElement("article");
+
+            card.className = "empty-state";
+            card.style.marginBottom = "15px";
+            card.style.textAlign = "left";
+
+            const color =
+                announcement.priority === "urgent"
+                    ? "#dc2626"
+                    : announcement.priority === "important"
+                    ? "#d97706"
+                    : "#16a34a";
+
+            card.style.borderLeft = "4px solid " + color;
+
+            const priority = document.createElement("strong");
+
+            priority.textContent =
+                announcement.priority.toUpperCase();
+
+            priority.style.color = color;
+
+            const title = document.createElement("h3");
+
+            title.textContent = announcement.title;
+
+            const message = document.createElement("p");
+
+            message.textContent = announcement.message;
+            message.style.whiteSpace = "pre-wrap";
+
+            const date = document.createElement("small");
+
+            date.textContent =
+                new Date(announcement.createdAt)
+                    .toLocaleString("en-IN");
+
+            card.append(
+                priority,
+                title,
+                message,
+                date
+            );
+
+            list.append(card);
+
+        });
+
+        const navigationButton =
+            document.querySelector('[data-page="updates"]');
+
+        if (navigationButton) {
+
+            navigationButton.setAttribute(
+                "data-announcement-count",
+                data.announcements.length
+            );
+
+            navigationButton.title =
+                data.announcements.length +
+                " published announcements";
+
+        }
+
+    } catch (error) {
+
+        empty.hidden = false;
+
+        empty.textContent =
+            "Unable to load announcements.";
+
+        console.error(
+            "Announcement Loading Error:",
+            error
+        );
+
+    }
+
+}
+
+loadParticipantAnnouncements();
+
+setInterval(loadParticipantAnnouncements, 5000);
+
+// ---------------------------------
+// AUTOMATIC SYSTEM NOTIFICATIONS
+// ---------------------------------
+
+async function loadSystemNotifications() {
+
+    const token =
+        sessionStorage.getItem("hackarenaTeamToken");
+
+    if (!token) return;
+
+    const list =
+        document.getElementById("notifications-list");
+
+    const empty =
+        document.getElementById("notifications-empty");
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/submissions/my-submission",
+            {
+                headers: {
+                    Authorization: "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message);
+        }
+
+        const notifications = [];
+
+        notifications.push({
+            title: "Registration Successful",
+            message: "Your team is registered and verified.",
+            color: "#16a34a"
+        });
+
+        if (participantState.selectedProblem) {
+
+            notifications.push({
+                title: "Problem Statement Selected",
+                message: "Your team has selected a problem statement.",
+                color: "#2563eb"
+            });
+
+        }
+
+        if (data.effectiveDeadline) {
+
+            notifications.push({
+                title: data.submissionOpen
+                    ? "Submission Window Open"
+                    : "Submission Window Closed",
+
+                message: "Submission deadline: " +
+                    new Date(data.effectiveDeadline)
+                        .toLocaleString("en-IN"),
+
+                color: data.submissionOpen
+                    ? "#16a34a"
+                    : "#dc2626"
+            });
+
+        }
+
+        if (data.extraSeconds > 0) {
+
+            notifications.push({
+                title: "Individual Extra Time Granted",
+                message: "The organizer has extended your team's submission deadline.",
+                color: "#d97706"
+            });
+
+        }
+
+        const submission = data.submissions[0];
+        
+        participantState.achievements.registration = true;
+
+participantState.achievements.problem =
+    Boolean(participantState.selectedProblem);
+
+participantState.achievements.submission =
+    submission?.status === "submitted" ||
+    submission?.status === "evaluated";
+
+participantState.achievements.evaluation =
+    submission?.status === "evaluated";
+
+updateAchievements();
+
+if (officialResultsPublished) {
+
+    participantState.currentStage = "Results";
+
+} else if (submission?.status === "evaluated") {
+
+    participantState.currentStage = "Judging";
+
+} else if (submission?.status === "submitted") {
+
+    participantState.currentStage = "Judging";
+
+} else if (submission?.status === "draft") {
+
+    participantState.currentStage = "Development";
+
+} else if (participantState.selectedProblem) {
+
+    participantState.currentStage = "Development";
+
+} else {
+
+    participantState.currentStage = "Problem";
+
+}
+
+updateProgressTracker();
+
+
+        if (submission) {
+
+            if (submission.status === "draft") {
+
+                notifications.push({
+                    title: "Project Draft Saved",
+                    message: "Your project draft is saved successfully.",
+                    color: "#2563eb"
+                });
+
+            }
+
+            if (
+                submission.status === "submitted" ||
+                submission.status === "evaluated"
+            ) {
+
+                notifications.push({
+                    title: "Project Submitted Successfully",
+                    message: "Your final project submission has been received.",
+                    color: "#16a34a"
+                });
+
+            }
+
+            if (submission.status === "evaluated") {
+
+                notifications.push({
+                    title: "Evaluation Completed",
+                    message: "Your project has been evaluated.",
+                    color: "#16a34a"
+                });
+
+            }
+
+        }
+
+        list.replaceChildren();
+
+        empty.hidden = notifications.length > 0;
+
+        notifications.reverse().forEach(notification => {
+
+            const card = document.createElement("article");
+
+            card.className = "empty-state";
+
+            card.style.marginBottom = "12px";
+            card.style.textAlign = "left";
+
+            card.style.borderLeft =
+                "4px solid " + notification.color;
+
+            const title = document.createElement("h3");
+
+            title.textContent = notification.title;
+            title.style.color = notification.color;
+
+            const message = document.createElement("p");
+
+            message.textContent = notification.message;
+
+            card.append(title, message);
+
+            list.append(card);
+
+        });
+
+    } catch (error) {
+
+        console.error("System Notification Error:", error);
+
+        empty.hidden = false;
+
+        empty.textContent =
+            "Unable to load system notifications.";
+
+    }
+
+}
+
+loadSystemNotifications();
+
+setInterval(loadSystemNotifications, 5000);
+
+// ---------------------------------
+// UNREAD ANNOUNCEMENT TRACKING
+// ---------------------------------
+
+let participantAnnouncementIds = [];
+
+function updateParticipantUnreadBadge(announcements) {
+
+    const teamId = participantState.team?.teamId;
+
+    if (!teamId) return;
+
+    const storageKey =
+        "hackarenaReadAnnouncements_" + teamId;
+
+    const badge =
+        document.getElementById("participant-unread-badge");
+
+    const updatesPage =
+        document.getElementById("updates");
+
+    participantAnnouncementIds =
+        announcements.map(item => item._id);
+
+    let readIds = JSON.parse(
+        localStorage.getItem(storageKey) || "[]"
+    );
+
+    if (!updatesPage.hidden) {
+
+        readIds = [...new Set([
+            ...readIds,
+            ...participantAnnouncementIds
+        ])];
+
+        localStorage.setItem(
+            storageKey,
+            JSON.stringify(readIds)
+        );
+
+    }
+
+    const unreadCount =
+        participantAnnouncementIds.filter(
+            id => !readIds.includes(id)
+        ).length;
+
+    badge.textContent = unreadCount;
+    badge.hidden = unreadCount === 0;
+
+}
+
+document.querySelector('[data-page="updates"]')
+    .addEventListener("click", () => {
+
+        updateParticipantUnreadBadge(
+            participantAnnouncementIds.map(id => ({
+                _id: id
+            }))
+        );
+
+    });
+
+    // OFFICIAL RESULTS STATUS
+
+let officialResultsPublished = false;
+
+async function loadOfficialResultsStatus() {
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/results",
+            { cache: "no-store" }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message);
+        }
+
+        officialResultsPublished = data.resultsPublished === true;
+        const status = document.getElementById(
+    "participant-results-status"
+);
+
+const date = document.getElementById(
+    "participant-results-date"
+);
+
+if (officialResultsPublished) {
+
+    status.textContent = "Official Results Published";
+    status.style.color = "#16a34a";
+
+    date.textContent = "Published on: " +
+        new Date(data.resultsPublishedAt)
+            .toLocaleString("en-IN");
+
+} else {
+
+    status.textContent = "Provisional Leaderboard - Results Not Published";
+    status.style.color = "#d97706";
+
+    date.textContent = "";
+
+}
+
+        if (officialResultsPublished) {
+
+            participantState.currentStage = "Results";
+
+            updateProgressTracker();
+
+        }
+
+    } catch (error) {
+
+        console.error("Results Status Error:", error);
+
+    }
+
+}
+
+loadOfficialResultsStatus();
+
+setInterval(loadOfficialResultsStatus, 5000);
 // ---------------------------------
 // BACKEND INTEGRATION NOTES
 // ---------------------------------
