@@ -245,7 +245,7 @@ async function selectProblem(problem, button) {
   try {
 
     const response = await fetch(
-      `http://127.0.0.1:5000/api/problems/${problemId}/select`,
+      `${window.HACKARENA_API}/api/problems/${problemId}/select`,
       {
         method: "POST",
         headers: {
@@ -335,7 +335,7 @@ async function cancelProblemSelection(button) {
   try {
 
     const response = await fetch(
-      `http://127.0.0.1:5000/api/problems/${problemId}/cancel`,
+      `${window.HACKARENA_API}/api/problems/${problemId}/cancel`,
       {
         method: "POST",
         headers: {
@@ -518,7 +518,7 @@ async function loadAvailableProblems() {
   try {
 
     const response = await fetch(
-      "http://127.0.0.1:5000/api/problems",
+      window.HACKARENA_API + "/api/problems",
       {
         method: "GET",
         cache: "no-store"
@@ -639,7 +639,7 @@ matchingForm.addEventListener("submit", async (event) => {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/problems/match",
+            window.HACKARENA_API + "/api/problems/match",
             {
                 method: "POST",
                 headers: {
@@ -880,7 +880,7 @@ document.getElementById("save-draft").addEventListener("click", async () => {
 
     try {
         const response = await fetch(
-            "http://127.0.0.1:5000/api/submissions/draft",
+            window.HACKARENA_API + "/api/submissions/draft",
             {
                 method: "POST",
                 headers: {
@@ -957,7 +957,7 @@ submissionForm.addEventListener("submit", async (event) => {
 
     try {
         const response = await fetch(
-            "http://127.0.0.1:5000/api/submissions",
+            window.HACKARENA_API + "/api/submissions",
             {
                 method: "POST",
                 headers: {
@@ -1007,7 +1007,7 @@ async function loadMySubmission() {
 
     try {
         const response = await fetch(
-            "http://127.0.0.1:5000/api/submissions/my-submission",
+            window.HACKARENA_API + "/api/submissions/my-submission",
             {
                 headers: {
                     Authorization: "Bearer " + token
@@ -1095,7 +1095,7 @@ async function loadLeaderboard() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/leaderboard",
+            window.HACKARENA_API + "/api/leaderboard",
             {
                 method: "GET",
                 cache: "no-store"
@@ -1334,7 +1334,7 @@ async function loadAuthenticatedTeam() {
   try {
 
     const response = await fetch(
-      "http://127.0.0.1:5000/api/teams/me",
+      window.HACKARENA_API + "/api/teams/me",
       {
         method: "GET",
         headers: {
@@ -1381,7 +1381,7 @@ async function loadAuthenticatedTeam() {
     try {
 
       const eventResponse = await fetch(
-        "http://127.0.0.1:5000/api/event",
+        window.HACKARENA_API + "/api/event",
         {
           method: "GET",
           cache: "no-store"
@@ -1460,7 +1460,7 @@ loadAuthenticatedTeam();
     async function loadParticipantTimer() {
         try {
             const response = await fetch(
-                "http://127.0.0.1:5000/api/event/timer",
+                window.HACKARENA_API + "/api/event/timer",
                 { cache: "no-store" }
             );
 
@@ -1556,7 +1556,7 @@ async function loadSubmissionDeadline() {
 
     try {
         const response = await fetch(
-            "http://127.0.0.1:5000/api/submissions/my-submission",
+            window.HACKARENA_API + "/api/submissions/my-submission",
             {
                 headers: {
                     Authorization: "Bearer " + token
@@ -1651,7 +1651,7 @@ async function loadParticipantAnnouncements() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/announcements/participant",
+            window.HACKARENA_API + "/api/announcements/participant",
             {
                 headers: {
                     "Authorization": "Bearer " + token
@@ -1784,7 +1784,7 @@ async function loadSystemNotifications() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/submissions/my-submission",
+            window.HACKARENA_API + "/api/submissions/my-submission",
             {
                 headers: {
                     Authorization: "Bearer " + token
@@ -2047,7 +2047,7 @@ async function loadOfficialResultsStatus() {
     try {
 
         const response = await fetch(
-            "http://127.0.0.1:5000/api/results",
+            window.HACKARENA_API + "/api/results",
             { cache: "no-store" }
         );
 
