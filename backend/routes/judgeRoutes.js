@@ -11,6 +11,10 @@ const User = require("../models/user");
 const requireOrganizer = require("../middleware/requireOrganizer");
 
 const Submission = require("../models/submission");
+const Team = require("../models/team");
+const path = require("path");
+const fs = require("fs");
+const { getGridFSBucket } = require("../utils/gridfs");
 const JudgeAssignment = require("../models/judgeAssignment");
 const Evaluation = require("../models/Evaluation");
 
@@ -284,9 +288,16 @@ router.post("/assignments/sync", requireOrganizer, async (req, res) => {
         }
 
         // Get all submitted projects
-        const submissions = await Submission.find({
-            status: "submitted"
-        }).sort({ submittedAt: 1, _id: 1 }).select("_id");
+        const teams = await Team.find({
+    emailVerified: true
+}).select("_id");
+
+const submissions = await Submission.find({
+    team: {
+        $in: teams.map(team => team._id)
+    },
+    status: "submitted"
+}).sort({ submittedAt: 1, _id: 1 }).select("_id");
 
         if (submissions.length === 0) {
             return res.json({
@@ -393,18 +404,19 @@ router.get("/assigned-projects", requireJudge, async (req, res) => {
             populate: [
                 {
                     path: "team",
-                    select: "teamName teamId"
+select: "teamName teamId leaderName memberNames",
+match: { emailVerified: true }
                 },
                 {
                     path: "problem",
-                    select: "title code"
+select: "title code statement"
                 }
             ]
         })
         .sort({ assignedAt: -1 });
 
         const projects = assignments
-            .filter(item => item.submission)
+        .filter(item => item.submission && item.submission.team)
             .map(item => ({
                 assignmentId: item._id,
                 submission: item.submission,
@@ -483,6 +495,30 @@ router.get("/evaluation/:submissionId", requireJudge, async (req, res) => {
             });
         }
 
+        const submission = await Submission.findOne({
+    _id: submissionId,
+    status: { $in: ["submitted", "evaluated"] }
+});
+
+if (!submission) {
+    return res.status(404).json({
+        success: false,
+        message: "Project not found."
+    });
+}
+
+const team = await Team.exists({
+    _id: submission.team,
+    emailVerified: true
+});
+
+if (!team) {
+    return res.status(404).json({
+        success: false,
+        message: "Project not found."
+    });
+}
+
         const evaluation = await Evaluation.findOne({
             judge: req.judge._id,
             submission: submissionId
@@ -535,7 +571,16 @@ router.post("/evaluation/:submissionId", requireJudge, async (req, res) => {
         });
 
 
-        const submission = await Submission.findById(submissionId);
+        const teams = await Team.find({
+    emailVerified: true
+}).select("_id");
+
+const submission = await Submission.findOne({
+    _id: submissionId,
+    team: {
+        $in: teams.map(team => team._id)
+    }
+});
 if (
     !submission ||
     (submission.status !== "submitted" &&
@@ -684,4 +729,168 @@ res.status(existingEvaluation ? 200 : 201).json({
         });
     }
 });
+
+// SECURE JUDGE PRESENTATION DOWNLOAD
+
+router.get("/presentation/:submissionId", requireJudge, async (req, res) => {
+    try {
+        const { submissionId } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(submissionId)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid submission ID."
+            });
+        }
+
+        const assignment = await JudgeAssignment.findOne({
+            judge: req.judge._id,
+            submission: submissionId
+        });
+
+        if (!assignment) {
+            return res.status(403).json({
+                success: false,
+                message: "This project is not assigned to you."
+            });
+        }
+
+        const submission = await Submission.findOne({
+            _id: submissionId,
+            status: { $in: ["submitted", "evaluated"] }
+        });
+
+        if (!submission || !submission.presentation?.fileName) {
+            return res.status(404).json({
+                success: false,
+                message: "Presentation not found."
+            });
+        }
+
+        const team = await Team.exists({
+            _id: submission.team,
+            emailVerified: true
+        });
+
+        if (!team) {
+            return res.status(404).json({
+                success: false,
+                message: "Presentation not found."
+            });
+        }
+
+        const presentation = submission.presentation;
+        const filename = presentation.fileName;
+
+        if (
+            path.basename(filename) !== filename ||
+            filename.includes("\\") ||
+            filename === "." ||
+            filename === ".."
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid presentation filename."
+            });
+        }
+
+        const downloadName = path.basename(
+            presentation.originalName || filename
+        );
+
+        if (presentation.gridFsId) {
+            const bucket = getGridFSBucket();
+
+            const files = await bucket.find({
+                _id: presentation.gridFsId
+            }).toArray();
+
+            if (!files.length) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Presentation file not found."
+                });
+            }
+
+            res.attachment(downloadName);
+            res.setHeader("Content-Type", "application/octet-stream");
+            res.setHeader("X-Content-Type-Options", "nosniff");
+            res.setHeader("Content-Length", files[0].length);
+
+            const downloadStream = bucket.openDownloadStream(
+                presentation.gridFsId
+            );
+
+            downloadStream.on("error", (error) => {
+                if (!res.headersSent) {
+                    res.removeHeader("Content-Length");
+                    res.removeHeader("Content-Disposition");
+
+                    return res.status(500).json({
+                        success: false,
+                        message: "Unable to download presentation."
+                    });
+                }
+
+                res.destroy(error);
+            });
+
+            res.on("close", () => {
+                if (!res.writableFinished) {
+                    downloadStream.destroy();
+                }
+            });
+
+            downloadStream.pipe(res);
+
+        } else {
+            const localFile = path.join(
+                __dirname,
+                "../uploads/presentations",
+                filename
+            );
+
+            if (!fs.existsSync(localFile)) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Presentation file not found."
+                });
+            }
+
+            res.setHeader("X-Content-Type-Options", "nosniff");
+
+            res.download(localFile, downloadName, (error) => {
+                if (!error) return;
+
+                if (!res.headersSent) {
+                    res.removeHeader("Content-Length");
+                    res.removeHeader("Content-Disposition");
+
+                    return res.status(500).json({
+                        success: false,
+                        message: "Unable to download presentation."
+                    });
+                }
+
+                res.destroy(error);
+            });
+        }
+
+    } catch (error) {
+        console.error("Judge Presentation Download Error:", error);
+
+        if (!res.headersSent) {
+            res.removeHeader("Content-Length");
+            res.removeHeader("Content-Disposition");
+
+            return res.status(500).json({
+                success: false,
+                message: "Unable to download presentation."
+            });
+        }
+
+        res.destroy(error);
+    }
+});
+
 module.exports = router;
