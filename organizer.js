@@ -45,6 +45,10 @@ function showPage(name) {
 
   document.getElementById("page-title")
     .textContent = pageTitles[name];
+
+if (name === "submissions") {
+    loadSubmissions();
+}
 }
 
 document.querySelectorAll("[data-page]").forEach((button) => {
@@ -1796,7 +1800,367 @@ if (scope === "event") {
 // SUBMISSION MONITORING
 // ---------------------------------
 
+// LOAD OFFICIAL SUBMISSIONS FROM MONGODB
+
+async function loadSubmissions() {
+
+    const status = document.getElementById("submissions-status");
+    const refreshButton = document.getElementById("refresh-submissions");
+
+    const token = sessionStorage.getItem(
+        "hackarenaOrganizerToken"
+    );
+
+    if (!token) {
+        window.location.replace("./index.html");
+        return;
+    }
+
+    refreshButton.disabled = true;
+    status.textContent = "Loading submitted projects...";
+
+    try {
+
+        const response = await fetch(
+            window.HACKARENA_API + "/api/submissions/organizer/all",
+            {
+                method: "GET",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(
+                result.message || "Unable to load submissions."
+            );
+        }
+
+        if (!Array.isArray(result.submissions)) {
+            throw new Error("Invalid submission data.");
+        }
+
+        organizerData.submissions = result.submissions;
+
+        renderSubmissions();
+
+        status.textContent =
+            result.submissions.length +
+            " submitted projects loaded successfully.";
+
+    } catch (error) {
+
+        console.error("Submission Loading Error:", error);
+
+        status.textContent = error.message;
+
+    } finally {
+
+        refreshButton.disabled = false;
+
+    }
+}
+
+document.getElementById("refresh-submissions")
+    .addEventListener("click", loadSubmissions);
+
 function renderSubmissions() {
+
+    const list = document.getElementById("submissions-list");
+    const empty = document.getElementById("submissions-empty");
+
+    list.replaceChildren();
+
+    empty.hidden = organizerData.submissions.length > 0;
+
+    if (organizerData.submissions.length === 0) {
+
+        empty.querySelector("h3").textContent =
+            "No Submitted Projects";
+
+        empty.querySelector("p").textContent =
+            "Official project submissions will appear here.";
+
+        return;
+    }
+
+    organizerData.submissions.forEach((submission) => {
+
+        const row = document.createElement("tr");
+
+        function addCell(value) {
+
+            const cell = document.createElement("td");
+
+            cell.textContent = String(value ?? "—");
+
+            row.appendChild(cell);
+
+            return cell;
+        }
+
+        // TEAM DETAILS
+
+        addCell(
+            submission.team?.teamName || "Unknown Team"
+        );
+
+        // PROBLEM DETAILS
+
+        const problemCell = addCell(
+            submission.problem?.code || "—"
+        );
+
+        const problemTitle = document.createElement("p");
+
+        problemTitle.textContent =
+            submission.problem?.title || "";
+
+        problemCell.appendChild(problemTitle);
+
+        // PROJECT DETAILS
+
+        const projectCell = document.createElement("td");
+
+        const projectTitle = document.createElement("strong");
+
+        projectTitle.textContent =
+            submission.projectTitle || "Untitled Project";
+
+        const details = document.createElement("details");
+
+        const summary = document.createElement("summary");
+
+        summary.textContent = "View Project Details";
+
+        const description = document.createElement("p");
+
+        description.textContent =
+            submission.description || "No description provided.";
+
+        const technologies = document.createElement("p");
+
+        technologies.textContent =
+            "Technologies: " +
+            (submission.technologies || "Not provided");
+
+        details.append(summary, description, technologies);
+
+        function addProjectLink(label, url) {
+
+            if (!url) return;
+
+            try {
+
+                const parsedUrl = new URL(url);
+
+                if (
+                    parsedUrl.protocol !== "https:" &&
+                    parsedUrl.protocol !== "http:"
+                ) {
+                    return;
+                }
+
+                const paragraph = document.createElement("p");
+
+                const link = document.createElement("a");
+
+                link.textContent = label;
+                link.href = parsedUrl.href;
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+
+                paragraph.appendChild(link);
+
+                details.appendChild(paragraph);
+
+            } catch (error) {
+
+                console.warn("Invalid project URL.");
+
+            }
+        }
+
+        addProjectLink(
+            "View GitHub Repository",
+            submission.githubUrl
+        );
+
+        addProjectLink(
+            "View Live Demo",
+            submission.liveDemoUrl
+        );
+
+        projectCell.append(projectTitle, details);
+
+        row.appendChild(projectCell);
+
+        // PRESENTATION DOWNLOAD
+
+        const presentationCell = document.createElement("td");
+
+        const presentation = submission.presentation;
+
+        if (presentation?.fileName) {
+
+            const fileName = document.createElement("p");
+
+            fileName.textContent =
+                presentation.originalName ||
+                presentation.fileName;
+
+            const downloadButton =
+                document.createElement("button");
+
+            downloadButton.type = "button";
+
+            downloadButton.className = "secondary-button";
+
+            downloadButton.textContent = "Download Presentation";
+
+            downloadButton.addEventListener("click", async () => {
+
+                const status = document.getElementById(
+                    "submissions-status"
+                );
+
+                const token = sessionStorage.getItem(
+                    "hackarenaOrganizerToken"
+                );
+
+                if (!token) {
+
+                    window.location.replace("./index.html");
+
+                    return;
+                }
+
+                downloadButton.disabled = true;
+
+                downloadButton.textContent = "Downloading...";
+
+                try {
+
+                    const response = await fetch(
+
+                        window.HACKARENA_API +
+                        "/api/submissions/organizer/presentation/" +
+                        encodeURIComponent(presentation.fileName),
+
+                        {
+                            headers: {
+                                "Authorization": "Bearer " + token
+                            },
+                            cache: "no-store"
+                        }
+                    );
+
+                    if (!response.ok) {
+
+                        throw new Error(
+                            "Unable to download presentation."
+                        );
+                    }
+
+                    const blob = await response.blob();
+
+                    const url = URL.createObjectURL(blob);
+
+                    const link = document.createElement("a");
+
+                    link.href = url;
+
+                    link.download =
+                        presentation.originalName ||
+                        presentation.fileName;
+
+                    document.body.appendChild(link);
+
+                    link.click();
+
+                    link.remove();
+
+                    setTimeout(() => {
+
+                        URL.revokeObjectURL(url);
+
+                    }, 1000);
+
+                    status.textContent =
+                        "Presentation downloaded successfully.";
+
+                } catch (error) {
+
+                    status.textContent = error.message;
+
+                } finally {
+
+                    downloadButton.disabled = false;
+
+                    downloadButton.textContent =
+                        "Download Presentation";
+                }
+            });
+
+            presentationCell.append(
+                fileName,
+                downloadButton
+            );
+
+        } else {
+
+            presentationCell.textContent =
+                "No Presentation";
+        }
+
+        row.appendChild(presentationCell);
+
+        // SUBMISSION STATUS
+
+        const submissionCell = document.createElement("td");
+
+        const submissionBadge = document.createElement("span");
+
+        submissionBadge.className = "status-pill available";
+
+        submissionBadge.textContent = "Submitted";
+
+        submissionCell.appendChild(submissionBadge);
+
+        row.appendChild(submissionCell);
+
+        // JUDGING STATUS
+
+        const judgingCell = document.createElement("td");
+
+        const judgingBadge = document.createElement("span");
+
+        judgingBadge.className = "status-pill";
+
+        if (submission.status === "evaluated") {
+
+            judgingBadge.textContent = "Evaluated";
+
+            judgingBadge.classList.add("available");
+
+        } else {
+
+            judgingBadge.textContent = "Pending";
+
+            judgingBadge.classList.add("draft");
+        }
+
+        judgingCell.appendChild(judgingBadge);
+
+        row.appendChild(judgingCell);
+
+        list.appendChild(row);
+    });
+}
 
   const list =
     document.getElementById("submissions-list");
@@ -1834,7 +2198,7 @@ function renderSubmissions() {
 
     list.append(row);
   });
-}
+
 
 // ---------------------------------
 // SUBMISSION STATISTICS
@@ -2560,7 +2924,13 @@ async function loadLiveAnalytics() {
             throw new Error(data.message);
         }
 
-        updateAnalytics(data.analytics);
+       updateAnalytics(data.analytics);
+
+updateSubmissionStats({
+    submitted: data.analytics.finalSubmissions,
+    pending: data.analytics.pendingSubmissions,
+    evaluated: data.analytics.evaluatedProjects
+});
 renderAnalyticsCharts(data.analytics);
 
 
@@ -2703,7 +3073,7 @@ if (organizerData.eventSettings?.evaluationCriteria) {
     await loadJudges();
     renderSubmissions();
 
-    updateSubmissionStats(null);
+   
     updateAnalytics(null);
     updateOverview();
 }
