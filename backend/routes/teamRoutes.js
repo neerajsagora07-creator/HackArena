@@ -3,7 +3,7 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+const { sendEmail } = require("../utils/emailService");
 const rateLimit = require("express-rate-limit");
 
 
@@ -35,19 +35,7 @@ const loginLimit = rateLimit({
     }
 });
 
-function createMailTransport() {
-    const port = Number(process.env.SMTP_PORT || 587);
 
-    return nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: port,
-        secure: port === 465,
-        auth: {
-            user: process.env.SMTP_USER,
-            pass: process.env.SMTP_PASS
-        }
-    });
-}
 
 function hashOtp(email, otp) {
     return crypto
@@ -157,10 +145,9 @@ router.post("/register", registerLimit, async (req, res) => {
         }
 
         if (
-            !process.env.SMTP_HOST ||
-            !process.env.SMTP_USER ||
-            !process.env.SMTP_PASS
-        ) {
+    !process.env.BREVO_API_KEY ||
+    !process.env.BREVO_SENDER_EMAIL
+) {
             return res.status(503).json({
                 success: false,
                 message: "Email verification service is not configured."
@@ -190,18 +177,15 @@ router.post("/register", registerLimit, async (req, res) => {
 
         try {
 
-            const transporter = createMailTransport();
-
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM || process.env.SMTP_USER,
-                to: email,
-                subject: "HackArena - Verify Your Team",
-                text:
-                    "Your HackArena verification code is: " +
-                    otp +
-                    "\n\nThis code expires in 10 minutes." +
-                    "\nDo not share this code."
-            });
+          await sendEmail({
+    to: email,
+    subject: "HackArena - Verify Your Team",
+    text:
+        "Your HackArena verification code is: " +
+        otp +
+        "\n\nThis code expires in 10 minutes." +
+        "\nDo not share this code."
+});
 
         } catch (mailError) {
 
