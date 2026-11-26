@@ -155,14 +155,15 @@
 
     </div>
 
-    <script>
-        const API_URL = "http://127.0.0.1:5000/api/judges";
+   <script src="./config.js"></script>
+
+<script>
+    const API_URL = window.HACKARENA_API + "/api/judges";
 
         const token = new URLSearchParams(
             window.location.search
         ).get("token");
-        console.log("Current URL:", window.location.href);
-console.log("Token received:", token ? "YES" : "NO");
+       
 
         const form = document.getElementById("accept-form");
         const status = document.getElementById("accept-status");
