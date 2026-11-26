@@ -1,0 +1,12 @@
+{
+    "liveServer.settings.ignoreFiles": [
+        "**/backend/**",
+        ".vscode/**",
+        "**/*.scss",
+        "**/*.sass",
+        "**/*.ts",
+        "node_modules/**",
+        "venv/**",
+        ".venv/**"
+    ]
+}

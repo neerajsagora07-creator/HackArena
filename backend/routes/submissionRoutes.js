@@ -82,22 +82,35 @@ function getPresentation(file) {
     };
 }
 
-async function checkDeadline(res) {
+async function checkDeadline(res, teamId) {
+
     const event = await Event.findOne();
 
     if (!event || !event.submissionDeadline) {
+
         res.status(400).json({
             success: false,
             message: "Submission deadline has not been configured."
         });
+
         return false;
     }
 
-    if (new Date() > event.submissionDeadline) {
+    const extraSeconds = teamId
+        ? Number(event.teamExtraTime?.get(String(teamId)) || 0)
+        : 0;
+
+    const effectiveDeadline =
+        new Date(event.submissionDeadline).getTime()
+        + extraSeconds * 1000;
+
+    if (Date.now() >= effectiveDeadline) {
+
         res.status(403).json({
             success: false,
             message: "Submission deadline has passed."
         });
+
         return false;
     }
 
@@ -148,9 +161,13 @@ router.post(
     requireParticipant,
     upload.single("presentation"),
     async (req, res) => {
-        try {
-            const team = req.team;
-            const problem = await getSelectedProblem(team);
+       try {
+    const team = req.team;
+
+    const allowed = await checkDeadline(res, team._id);
+    if (!allowed) return;
+
+    const problem = await getSelectedProblem(team);
 
             if (!problem) {
                 return res.status(400).json({
@@ -232,7 +249,7 @@ router.post(
         try {
             const team = req.team;
 
-            const allowed = await checkDeadline(res);
+           const allowed = await checkDeadline(res, team._id);
             if (!allowed) return;
 
             const problem = await getSelectedProblem(team);
@@ -321,6 +338,8 @@ router.post(
     }
 );
 
+
+
 // GET TEAM SUBMISSION
 
 router.get("/my-submission", requireParticipant, async (req, res) => {
@@ -329,10 +348,35 @@ router.get("/my-submission", requireParticipant, async (req, res) => {
             team: req.team._id
         }).populate("problem", "code title");
 
+        const event = await Event.findOne();
+
+        const submissionDeadline =
+            event?.submissionDeadline || null;
+
+        const extraSeconds = Number(
+            event?.teamExtraTime?.get(String(req.team._id)) || 0
+        );
+
+        const effectiveDeadline = submissionDeadline
+            ? new Date(
+                new Date(submissionDeadline).getTime() +
+                extraSeconds * 1000
+            )
+            : null;
+
+        const submissionOpen = effectiveDeadline
+            ? Date.now() < effectiveDeadline.getTime()
+            : false;
+
         res.json({
             success: true,
             count: submissions.length,
-            submissions: submissions
+            submissions: submissions,
+            submissionDeadline: submissionDeadline,
+            extraSeconds: extraSeconds,
+            effectiveDeadline: effectiveDeadline,
+            submissionOpen: submissionOpen,
+            serverTime: Date.now()
         });
 
     } catch (error) {
@@ -359,7 +403,7 @@ router.put(
                 });
             }
 
-            const allowed = await checkDeadline(res);
+          const allowed = await checkDeadline(res, req.team._id);
             if (!allowed) return;
 
             const submission = await Submission.findOne({

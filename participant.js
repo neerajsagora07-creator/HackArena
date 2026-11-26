@@ -1428,6 +1428,94 @@ loadAuthenticatedTeam();
     setInterval(displayParticipantTimer, 1000);
 
 })();
+
+// LIVE SUBMISSION DEADLINE
+
+async function loadSubmissionDeadline() {
+    const token = getSubmissionToken();
+
+    if (!token) return;
+
+    const message = document.getElementById(
+        "submission-deadline-message"
+    );
+
+    try {
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/submissions/my-submission",
+            {
+                headers: {
+                    Authorization: "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error("Deadline unavailable");
+        }
+const submissionStatus = String(
+    data.submissions[0]?.status || ""
+).toLowerCase();
+
+const permanentlyLocked =
+    submissionStatus === "submitted" ||
+    submissionStatus === "evaluated";
+
+const isLocked =
+    !data.submissionOpen || permanentlyLocked;
+
+submissionForm.querySelectorAll("input, textarea")
+    .forEach(element => {
+        element.disabled = isLocked;
+    });
+
+document.getElementById("save-draft").disabled =
+    isLocked;
+
+document.getElementById("check-readiness").disabled =
+    isLocked;
+
+document.getElementById("final-submit").disabled =
+    isLocked;
+        if (!data.effectiveDeadline) {
+            message.textContent =
+                "Submission deadline not configured.";
+            message.style.color = "orange";
+            return;
+        }
+
+        const deadline = new Date(
+            data.effectiveDeadline
+        ).toLocaleString("en-IN");
+
+        if (data.submissionOpen) {
+            message.textContent =
+                "Submission Open | Deadline: " + deadline;
+            message.style.color = "green";
+        } else {
+            message.textContent =
+                "Submission Closed | Deadline: " + deadline;
+            message.style.color = "red";
+        }
+
+        if (data.extraSeconds > 0) {
+    message.textContent +=
+        " | Individual deadline extension applied";
+}
+
+    } catch (error) {
+        message.textContent =
+            "Unable to load submission deadline.";
+        message.style.color = "red";
+    }
+}
+
+loadSubmissionDeadline();
+
+setInterval(loadSubmissionDeadline, 3000);
 // ---------------------------------
 // BACKEND INTEGRATION NOTES
 // ---------------------------------

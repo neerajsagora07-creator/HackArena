@@ -1,5 +1,6 @@
 const express = require("express");
 const Event = require("../models/event");
+const Team = require("../models/Team");
 const requireOrganizer = require("../middleware/requireOrganizer");
 
 const router = express.Router();
@@ -218,4 +219,116 @@ router.post("/", requireOrganizer, async (req, res) => {
     }
 });
 
+// SUBMISSION DEADLINE EXTENSION
+
+router.post("/extra-time", requireOrganizer, async (req, res) => {
+    try {
+        const {
+            scope,
+            teamId,
+            hours = 0,
+            minutes = 0
+        } = req.body;
+
+        const h = Number(hours);
+        const m = Number(minutes);
+
+        const extraSeconds = h * 3600 + m * 60;
+
+        if (
+            !Number.isInteger(h) ||
+            !Number.isInteger(m) ||
+            h < 0 ||
+            m < 0 ||
+            m > 59 ||
+            extraSeconds <= 0 ||
+            extraSeconds > 2592000
+        ) {
+            return res.status(400).json({
+                success: false,
+                message: "Enter valid extra time."
+            });
+        }
+
+        const event = await Event.findOne();
+
+        if (!event || !event.submissionDeadline) {
+            return res.status(400).json({
+                success: false,
+                message: "Configure submission deadline first."
+            });
+        }
+
+        const baseDeadline = new Date(
+            event.submissionDeadline
+        ).getTime();
+
+        if (scope === "event") {
+
+            event.submissionDeadline = new Date(
+                Math.max(baseDeadline, Date.now()) +
+                extraSeconds * 1000
+            );
+
+        } else if (scope === "team") {
+
+            const team = await Team.findOne({
+                teamId: String(teamId || "").trim().toUpperCase(),
+                emailVerified: true
+            });
+
+            if (!team) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Registered team not found."
+                });
+            }
+
+            const key = String(team._id);
+
+            if (!event.teamExtraTime) {
+                event.teamExtraTime = new Map();
+            }
+
+            const previousExtra = Number(
+                event.teamExtraTime.get(key) || 0
+            );
+
+            const currentDeadline =
+                baseDeadline + previousExtra * 1000;
+
+            const newDeadline =
+                Math.max(currentDeadline, Date.now()) +
+                extraSeconds * 1000;
+
+            event.teamExtraTime.set(
+                key,
+                Math.ceil(
+                    (newDeadline - baseDeadline) / 1000
+                )
+            );
+
+        } else {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid extension scope."
+            });
+        }
+
+        await event.save();
+
+        res.json({
+            success: true,
+            message: "Extra submission time granted successfully."
+        });
+
+    } catch (error) {
+        console.error("Extra Time Error:", error);
+
+        res.status(500).json({
+            success: false,
+            message: "Unable to grant extra time."
+        });
+    }
+});
 module.exports = router;

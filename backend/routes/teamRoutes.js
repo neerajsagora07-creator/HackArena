@@ -6,8 +6,9 @@ const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const rateLimit = require("express-rate-limit");
 
-const Team = require("../models/Team");
+
 const Event = require("../models/event");
+const Team = require("../models/Team");
 const Problem = require("../models/problem");
 
 const router = express.Router();

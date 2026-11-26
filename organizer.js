@@ -276,12 +276,12 @@ if (!token) {
 }
 
 const response = await fetch(eventApiUrl, {
-  method: "POST",
+  method: "GET",
   headers: {
     "Content-Type": "application/json",
     "Authorization": "Bearer " + token
   },
-  body: JSON.stringify(branding),
+  cache: "no-store",
   signal: AbortSignal.timeout(10000)
 });
     if (!response.ok) {
@@ -484,11 +484,14 @@ if (!deadlineInput || !deadlineInput.value) {
   status.textContent = "Saving event information...";
   try {
     const response = await fetch(eventApiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(branding),
-      signal: AbortSignal.timeout(10000)
-    });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + sessionStorage.getItem("hackarenaOrganizerToken")
+  },
+  body: JSON.stringify(branding),
+  signal: AbortSignal.timeout(10000)
+});
     if (!response.ok) {
       throw new Error(`Event save failed (HTTP ${response.status}).`);
     }
@@ -1697,45 +1700,96 @@ extensionScope.addEventListener(
 updateExtensionScope();
 
 document.getElementById("extension-form")
-  .addEventListener("submit", (event) => {
+    .addEventListener("submit", async (event) => {
 
-    event.preventDefault();
+        event.preventDefault();
 
-    const form = event.currentTarget;
+        const form = event.currentTarget;
 
-    if (!validateForm(form)) {
-      return;
+        if (!validateForm(form)) {
+            return;
+        }
+
+        const duration = readDuration(
+            "extra-hours",
+            "extra-minutes"
+        );
+
+        const status =
+            document.getElementById("extension-status");
+
+        if (!duration) {
+            status.textContent =
+                "Enter valid extra hours and minutes.";
+            return;
+        }
+
+        const scope = extensionScope.value;
+
+        if (scope === "countdown") {
+
+            const timer = await controlTimer(
+                "extend",
+                duration.hours,
+                duration.minutes
+            );
+
+            if (timer) {
+                status.textContent =
+                    "Hackathon countdown extended successfully.";
+
+                await loadLiveTimer();
+            } else {
+                status.textContent =
+                    document.getElementById("timer-status").textContent;
+            }
+
+            return;
+        }
+try {
+
+    const token = sessionStorage.getItem(
+        "hackarenaOrganizerToken"
+    );
+
+    const response = await fetch(
+        "http://127.0.0.1:5000/api/event/timer/extra-time",
+        {
+            method: "POST",
+
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token
+            },
+
+            body: JSON.stringify({
+                scope: scope,
+                teamId: extensionTeam.value.trim(),
+                hours: duration.hours,
+                minutes: duration.minutes
+            })
+        }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok || !data.success) {
+        throw new Error(data.message);
     }
+status.textContent = data.message;
 
-    const duration =
-      readDuration(
-        "extra-hours",
-        "extra-minutes"
-      );
+await loadLiveTimer();
 
-    const status =
-      document.getElementById("extension-status");
+if (scope === "event") {
+    await loadSavedEventInformation();
+}
 
-    if (!duration) {
+} catch (error) {
 
-      status.textContent =
-        "Enter valid extra hours and minutes.";
+    status.textContent = error.message;
 
-      return;
-    }
-
-    const recipient =
-      extensionScope.value === "team"
-        ? `Team ID ${extensionTeam.value.trim()}`
-        : "all participating teams";
-
-    status.textContent =
-      `Requested ${duration.hours} hour(s) and ` +
-      `${duration.minutes} minute(s) for ${recipient}. ` +
-      "No extension has been granted. " +
-      "The backend must verify the recipient " +
-      "and update the applicable deadline.";
-  });
+}
+    });
 
 // ---------------------------------
 // SUBMISSION MONITORING
