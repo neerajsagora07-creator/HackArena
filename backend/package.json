@@ -1,14 +1,21 @@
 {
-  "name": "backend",
+  "name": "hackarena-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "HackArena - Intelligent Hackathon Event Management and Evaluation System",
+  "main": "SERVER.JS",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node SERVER.JS",
+    "dev": "nodemon SERVER.JS"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "hackarena",
+    "hackathon",
+    "event-management",
+    "evaluation-system"
+  ],
+  "author": "Team Nexora",
   "license": "ISC",
+  "private": true,
   "type": "commonjs",
   "dependencies": {
     "bcryptjs": "^3.0.3",
