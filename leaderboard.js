@@ -3,7 +3,7 @@
 
 // HACKARENA PUBLIC LEADERBOARD
 
-const API_URL = "http://127.0.0.1:5000/api/leaderboard";
+const API_URL = window.HACKARENA_API + "/api/leaderboard";
 
 const leaderboardList =
     document.getElementById("leaderboard-list");
@@ -52,8 +52,10 @@ async function loadLeaderboard() {
         if (!Array.isArray(leaderboard) ||
             leaderboard.length === 0) {
 
-            leaderboardStatus.textContent =
-                "No evaluation results available yet.";
+        leaderboardStatus.textContent =
+    data.resultsPublished
+        ? "Official Results Published"
+        : "Provisional Leaderboard - Results Not Published Yet";
 
             leaderboardEmpty.hidden = false;
             return;
