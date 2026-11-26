@@ -35,6 +35,16 @@ router.get("/", async (req, res) => {
 // SAVE EVENT INFORMATION
 router.post("/", requireOrganizer, async (req, res) => {
     try {
+
+        const existingEvent = await Event.findOne();
+
+        if (existingEvent?.resultsPublished) {
+            return res.status(403).json({
+                success: false,
+                message: "Official results have been published. Event settings are now locked."
+            });
+        }
+
         const {
             eventName,
             organization,
@@ -179,6 +189,16 @@ router.post("/", requireOrganizer, async (req, res) => {
 // SAVE DYNAMIC EVALUATION CRITERIA
 router.put("/criteria", requireOrganizer, async (req, res) => {
     try {
+
+        const existingEvent = await Event.findOne();
+
+        if (existingEvent?.resultsPublished) {
+            return res.status(403).json({
+                success: false,
+                message: "Official results have been published. Evaluation criteria are now locked."
+            });
+        }
+
         const { evaluationCriteria } = req.body;
 
         if (

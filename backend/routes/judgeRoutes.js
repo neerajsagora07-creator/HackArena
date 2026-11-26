@@ -557,6 +557,18 @@ if (
 
         const event = await Event.findOne();
 
+        if (event?.resultsPublished) {
+
+    return res.status(403).json({
+
+        success: false,
+
+        message: "Official results have been published. Evaluation is now locked."
+
+    });
+
+}
+
         if (!event || !Array.isArray(event.evaluationCriteria)) {
             return res.status(400).json({
                 success: false,
