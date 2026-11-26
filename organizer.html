@@ -869,7 +869,7 @@
         <article class="stat">
           <span>Evaluated Projects</span>
           <strong id="evaluated-count">Not loaded</strong>
-          <small>Judging data not connected</small>
+          <small>Completed project evaluations</small>
         </article>
 
       </div>
@@ -878,7 +878,24 @@
 
         <span class="eyebrow">FOLLOW TEAM PROGRESS</span>
 
-        <h2>Submission Monitoring</h2>
+<h2>Submission Monitoring</h2>
+
+<div class="action-row">
+
+    <button
+        type="button"
+        id="refresh-submissions"
+        class="button secondary"
+    >
+        Refresh Submissions
+    </button>
+
+</div>
+
+<p id="submissions-status"
+   class="status"
+   role="status">
+</p>
 
         <p>
           Track each team's official submission
@@ -895,7 +912,7 @@
                 <th scope="col">Team</th>
                 <th scope="col">Problem Code</th>
                 <th scope="col">Project</th>
-                <th scope="col">PPT</th>
+                <th scope="col">Presentation</th>
                 <th scope="col">Submission Status</th>
                 <th scope="col">Judging Status</th>
               </tr>
