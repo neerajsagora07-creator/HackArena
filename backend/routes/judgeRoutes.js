@@ -2,7 +2,7 @@
 const express = require("express");
 const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
-const nodemailer = require("nodemailer");
+const { sendEmail } = require("../utils/emailService");
 const mongoose = require("mongoose");
 const Event = require("../models/event");
 
@@ -18,15 +18,7 @@ const requireJudge = require("../middleware/requireJudge");
 
 const router = express.Router();
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: Number(process.env.SMTP_PORT) === 465,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    }
-});
+
 
 
 // SEND JUDGE INVITATION
@@ -92,18 +84,18 @@ router.post("/invite", requireOrganizer, async (req, res) => {
             `${process.env.FRONTEND_URL}/judge-accept.html?token=${token}`;
 
         try {
-            await transporter.sendMail({
-                from: process.env.SMTP_FROM,
-                to: cleanEmail,
-                subject: "HackArena - Judge Invitation",
-                html: `
-                    <h2>Hello ${name.trim()},</h2>
-                    <p>You have been invited to become a Judge at HackArena.</p>
-                    <p>Click below to accept your invitation and create your password.</p>
-                    <a href="${invitationLink}">Accept Invitation</a>
-                    <p>This invitation expires in 24 hours.</p>
-                `
-            });
+            await sendEmail({
+    to: cleanEmail,
+    subject: "HackArena - Judge Invitation",
+    html: `
+        <h2>Welcome to HackArena!</h2>
+        <p>You have been invited to become a Judge at HackArena.</p>
+        <p>Click below to accept your invitation and create your password.</p>
+        <a href="${invitationLink}">Accept Invitation</a>
+        <p>This invitation expires in 24 hours.</p>
+        <p>Regards,<br>HackArena - Team Nexora</p>
+    `
+});
         } catch (mailError) {
             await JudgeInvitation.findByIdAndDelete(invitation._id);
             throw mailError;
