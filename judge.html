@@ -50,7 +50,17 @@
                 aria-pressed="false">
           Leaderboard
         </button>
+<button type="button"
+        data-page="announcements"
+        aria-pressed="false">
 
+  Announcements
+
+  <span id="judge-unread-badge"
+        class="unread-badge"
+        hidden>0</span>
+
+</button>
       </nav>
 
       <div class="sidebar-bottom">
@@ -396,6 +406,19 @@
 
       <!-- LEADERBOARD -->
       <section id="leaderboard" class="page" hidden>
+        <article class="panel">
+
+    <span class="eyebrow">OFFICIAL RESULTS</span>
+
+    <h2>Results Publication Status</h2>
+
+    <p id="judge-results-status">
+        Checking results status...
+    </p>
+
+    <p id="judge-results-date"></p>
+
+</article>
 
         <article class="panel">
 
@@ -446,6 +469,40 @@
         </article>
 
       </section>
+
+      <!-- ANNOUNCEMENTS AND NOTIFICATIONS -->
+
+<section id="announcements" class="page" hidden>
+
+  <article class="panel">
+
+    <span class="eyebrow">
+      FROM THE ORGANIZER
+    </span>
+
+    <h2>Announcements &amp; Notifications</h2>
+
+    <p>
+      Stay updated with important hackathon notices,
+      evaluation instructions and organizer announcements.
+    </p>
+
+    <div id="judge-announcements-list"></div>
+
+    <div id="judge-announcements-empty"
+         class="empty-state">
+
+      <h3>No announcements loaded</h3>
+
+      <p>
+        Official announcements will appear here.
+      </p>
+
+    </div>
+
+  </article>
+
+</section>
 
       <footer class="footer">
         HackArena · Team Nexora

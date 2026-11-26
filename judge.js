@@ -15,7 +15,8 @@ const pageTitles = {
     overview: "Overview",
     projects: "Submitted Projects",
     evaluation: "Evaluation",
-    leaderboard: "Leaderboard"
+    leaderboard: "Leaderboard",
+    announcements: "Announcements & Notifications"
 };
 
 const pages = document.querySelectorAll(".page");
@@ -1104,3 +1105,255 @@ verifyJudgeLogin();
     setInterval(displayJudgeTimer, 1000);
 
 })();
+
+// ---------------------------------
+// LIVE JUDGE ANNOUNCEMENTS
+// ---------------------------------
+
+async function loadJudgeAnnouncements() {
+
+    const token =
+        sessionStorage.getItem("hackarenaJudgeToken");
+
+    if (!token) return;
+
+    const list =
+        document.getElementById("judge-announcements-list");
+
+    const empty =
+        document.getElementById("judge-announcements-empty");
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/announcements/judge",
+            {
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                cache: "no-store"
+            }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message);
+        }
+
+        updateJudgeUnreadBadge(data.announcements);
+
+        list.replaceChildren();
+
+        empty.hidden = data.announcements.length > 0;
+
+        if (!data.announcements.length) {
+            empty.textContent =
+                "No announcements published yet.";
+        }
+
+        data.announcements.forEach(announcement => {
+
+            const card = document.createElement("article");
+
+            card.className = "empty-state";
+            card.style.marginBottom = "15px";
+            card.style.textAlign = "left";
+
+            const color =
+                announcement.priority === "urgent"
+                    ? "#dc2626"
+                    : announcement.priority === "important"
+                    ? "#d97706"
+                    : "#16a34a";
+
+            card.style.borderLeft = "4px solid " + color;
+
+            const priority = document.createElement("strong");
+
+            priority.textContent =
+                announcement.priority.toUpperCase();
+
+            priority.style.color = color;
+
+            const title = document.createElement("h3");
+
+            title.textContent = announcement.title;
+
+            const message = document.createElement("p");
+
+            message.textContent = announcement.message;
+            message.style.whiteSpace = "pre-wrap";
+
+            const date = document.createElement("small");
+
+            date.textContent =
+                new Date(announcement.createdAt)
+                    .toLocaleString("en-IN");
+
+            card.append(priority, title, message, date);
+
+            list.append(card);
+
+        });
+
+    } catch (error) {
+
+        empty.hidden = false;
+
+        empty.textContent =
+            "Unable to load announcements.";
+
+        console.error(
+            "Judge Announcement Error:",
+            error
+        );
+
+    }
+
+}
+
+loadJudgeAnnouncements();
+
+setInterval(loadJudgeAnnouncements, 5000);
+
+// ---------------------------------
+// JUDGE UNREAD ANNOUNCEMENT TRACKING
+// ---------------------------------
+
+let judgeAnnouncementIds = [];
+
+function updateJudgeUnreadBadge(announcements) {
+
+    const token =
+        sessionStorage.getItem("hackarenaJudgeToken");
+
+    if (!token) return;
+
+    let judgeId;
+
+    try {
+
+        const payload = token.split(".")[1]
+            .replace(/-/g, "+")
+            .replace(/_/g, "/");
+
+        const decoded = JSON.parse(atob(payload));
+
+        judgeId = decoded.id ||
+                  decoded.userId ||
+                  decoded.sub ||
+                  decoded._id;
+
+    } catch (error) {
+        return;
+    }
+
+    if (!judgeId) return;
+
+    const storageKey =
+        "hackarenaJudgeReadAnnouncements_" + judgeId;
+
+    const badge =
+        document.getElementById("judge-unread-badge");
+
+    const announcementsPage =
+        document.getElementById("announcements");
+
+    judgeAnnouncementIds =
+        announcements.map(item => item._id);
+
+    let readIds = JSON.parse(
+        localStorage.getItem(storageKey) || "[]"
+    );
+
+    if (!announcementsPage.hidden) {
+
+        readIds = [...new Set([
+            ...readIds,
+            ...judgeAnnouncementIds
+        ])];
+
+        localStorage.setItem(
+            storageKey,
+            JSON.stringify(readIds)
+        );
+
+    }
+
+    const unreadCount =
+        judgeAnnouncementIds.filter(
+            id => !readIds.includes(id)
+        ).length;
+
+    badge.textContent = unreadCount;
+    badge.hidden = unreadCount === 0;
+
+}
+
+document.querySelector('[data-page="announcements"]')
+    .addEventListener("click", () => {
+
+        updateJudgeUnreadBadge(
+            judgeAnnouncementIds.map(id => ({
+                _id: id
+            }))
+        );
+
+    });
+
+    // OFFICIAL RESULTS STATUS
+
+async function loadJudgeResultsStatus() {
+
+    const status = document.getElementById(
+        "judge-results-status"
+    );
+
+    const date = document.getElementById(
+        "judge-results-date"
+    );
+
+    try {
+
+        const response = await fetch(
+            "http://127.0.0.1:5000/api/results",
+            { cache: "no-store" }
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message);
+        }
+
+        if (data.resultsPublished) {
+
+            status.textContent = "Official Results Published";
+            status.style.color = "#16a34a";
+
+            date.textContent = "Published on: " +
+                new Date(data.resultsPublishedAt)
+                    .toLocaleString("en-IN");
+
+        } else {
+
+            status.textContent = "Results Not Published";
+            status.style.color = "#d97706";
+
+            date.textContent = "";
+
+        }
+
+    } catch (error) {
+
+        status.textContent = "Unable to load results status";
+        status.style.color = "#dc2626";
+
+    }
+
+}
+
+loadJudgeResultsStatus();
+
+setInterval(loadJudgeResultsStatus, 5000);
