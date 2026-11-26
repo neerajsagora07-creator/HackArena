@@ -1,6 +1,6 @@
 const express = require("express");
 const Announcement = require("../models/announcement");
-const nodemailer = require("nodemailer");
+const { sendEmail } = require("../utils/emailService");
 const Team = require("../models/team");
 const User = require("../models/user");
 
@@ -10,20 +10,6 @@ const requireJudge = require("../middleware/requireJudge");
 
 const router = express.Router();
 
-const announcementTransporter = nodemailer.createTransport({
-
-    host: process.env.SMTP_HOST,
-
-    port: Number(process.env.SMTP_PORT || 587),
-
-    secure: Number(process.env.SMTP_PORT || 587) === 465,
-
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    }
-
-});
 
 async function sendAnnouncementEmails(announcement) {
 
@@ -68,12 +54,9 @@ async function sendAnnouncementEmails(announcement) {
 
         try {
 
-            await announcementTransporter.sendMail({
+            await sendEmail({
 
-                from: process.env.SMTP_FROM ||
-                      process.env.SMTP_USER,
-
-                to: email,
+    to: email,
 
                 subject:
                     "[HackArena] " +
@@ -268,6 +251,5 @@ router.delete("/:id", requireOrganizer, async (req, res) => {
     }
 });
 
-router.sendAnnouncementEmails =
- sendAnnouncementEmails;
+
 module.exports = router;
