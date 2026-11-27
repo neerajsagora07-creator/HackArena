@@ -289,7 +289,12 @@ The architecture is designed to support scalability, security, and efficient eve
 
 ##  Technology Stack
 
-The project presentation describes the technical architecture in terms of frontend, backend, database, APIs, and authentication.
+The project presentation describes the technical architecture in terms of frontend, backend, database, APIs, authentication, hosting and tools.
+Frontend : HTML, CSS and Javascript for the browser dashboards.
+Backend : Node.js and express for API and event logic.
+Data and Files : MongoDB Atlas, Mongoose and GridFS for records and presentations.  
+Access and email : JWT, bcrypt.js, Multer and nodemailer over SMTP.
+Tools and hosting : VS Code, Git, GitHub and render.
 
   
 ##  Advantages
@@ -329,7 +334,7 @@ HackArena is being developed in two major phases:
 
  Phase 2 – Backend Integration
 
-"Status: In Development"
+"Status: Completed"
 
 Planned development activities include:
 
